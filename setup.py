@@ -9,6 +9,11 @@ setuptools.setup(
     description='',
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
+    install_requires=[
+        'toml',
+        'jinja2',
+        'markdown',
+    ],
     entry_points={
         'console_scripts': ['pine=pine:console'],
     }
