@@ -1,159 +1,149 @@
 import shutil
 from pathlib import Path
 
-import toml
-from markdown import Markdown
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from pine.utils import extract_toml, md, environment
 
 
-md = Markdown()
-env = Environment(
-    loader=FileSystemLoader('source/templates'),
-    autoescape=select_autoescape()
-)
+def tree(path, config={}):
+    if config:
+        Base.config = config
+
+    if path.is_file() and path.suffix == '.md' and path.stem != 'index':
+        return Page(path)
+
+    if path.is_file() and path.suffix != '.md':
+        return Asset(path)
+
+    if path.is_dir():
+        children = list(path.iterdir())
+        inner = [tree(x) for x in children]
+
+        index = [x for x in children if x.name == 'index.md']
+        if index:
+            return Page(index[0], inner)
+
+        return Page(path, inner)
 
 
-class Page:
+class Base:
+    config = {}
 
-    def __init__(
-            self, path, parent, config, index=False, template='index.html'):
+    def __repr__(self):
+        return str(self.path)
+
+
+class Page(Base):
+
+    def __init__(self, path, children=[]):
+
         self.path = path
-        self.index = index
-        self.parent = parent
-        self.config = config
-        self.template = template
+        self.parent = None
+        self.sections = [x for x in children if isinstance(x, Page)]
+        self.assets = [x for x in children if isinstance(x, Asset)]
 
-        root = Path(config['content'])
-        self.relative_path = self.path.relative_to(root).parent
-        if not self.index:
-            self.relative_path = self.relative_path / self.path.stem
+        for x in self.sections:
+            x.parent = self
 
-        if str(self.relative_path) == '.':
-            self.permalink = '/'
+        root = Path(self.config['content'])
+        relative_path = path.relative_to(root).parent
+
+        if path.is_file() and path.name != 'index.md':
+            relative_path = relative_path / self.path.stem
+
+        if path.is_file():
+            if str(relative_path) == '.':
+                self.permalink = '/'
+            else:
+                self.permalink = f'/{str(relative_path)}'
         else:
-            self.permalink = f'/{str(self.relative_path)}'
+            self.permalink = ''
 
-        self.parse()
+        self._relative_path = relative_path
 
     def parse(self):
-        meta = {
-            'self': self,
-            'parent': self.parent,
-            'permalink': self.permalink,
-            'template': self.template,
 
-        }
-        if self.index:
-            meta.update({
-                'pages': self.parent.pages,
-                'asssets': self.parent.assets,
-                'sections': self.parent.sections,
-            })
+        self.template = 'index.html'
+        self.child_template = 'index.html'
+
+        if self.path.is_dir():
+            [x.parse() for x in self.sections]
+            return
 
         with self.path.open('r') as f:
-            raw = f.readlines()
+            lines = f.readlines()
 
-        toml_i = []
-        for i, line in enumerate(raw):
-            if line.strip() == '---':
-                toml_i.append(i)
+        lines, toml = extract_toml(lines)
 
-        if len(toml_i) == 2:
-            toml_str = ''
-            for i in range(toml_i[0] + 1, toml_i[1]):
-                toml_str += raw[i]
-                raw[i] = ''
+        if self.parent:
+            self.template = self.parent.child_template
+            self.child_template = self.parent.child_template
 
-            raw[toml_i[0]] = ''
-            raw[toml_i[1]] = ''
+        for key, value in toml.items():
+            setattr(self, key, value)
 
-            meta.update(toml.loads(toml_str))
+        self.content = md.convert(''.join(lines))
 
-        meta['content'] = md.convert(''.join(raw))
-        self.meta = meta
+        [x.parse() for x in self.sections]
 
     def render(self):
-        build_dir = Path(self.config['output']) / self.relative_path
+        if self.path.is_dir():
+            [x.render() for x in self.sections]
+            return
+
+        build_dir = Path(self.config['output']) / self._relative_path
         build_path = build_dir / Path('index.html')
         build_dir.mkdir(parents=True, exist_ok=True)
 
-        template = env.get_template(self.template)
-        rendered = template.render(meta=self.meta)
+        template = environment.get_template(self.template)
+        rendered = template.render(page=self, config=self.config)
         with build_path.open('w') as f:
             f.write(rendered)
 
+        [x.render() for x in self.sections]
+        [x.render() for x in self.assets]
+
     # --------------------
+
     def print_tree(self, indent=0):
         print(' ' * indent, f'[{self.permalink}]: ', end='')
         print(self.path)
+        # print(' ' * indent, f'[{self.permalink}] ', end='')
+        # print(' ' * indent, f'[]: ', end='')
+        # print('parent:', self.parent, '  - ', self.path)
+        # print(' ' * indent, self.path)
+        # print(' ' * indent, 'template: ', self.template)
+        # print(' ' * indent, 'child_template: ', self.child_template)
+        # print(' ' * indent, 'parent: ', self.parent)
+        # print(' ' * indent, 'permalink: ', self.permalink)
+        # print(' ' * indent, 'sections: ', self.sections)
+        # print(' ' * indent, 'assets: ', self.assets)
+        # print()
+        [x.print_tree(indent + 4) for x in self.sections]
+        [x.print_tree(indent + 4) for x in self.assets]
+        print()
+        pass
 
 
-class Asset:
+class Asset(Base):
 
-    def __init__(self, path, config):
+    def __init__(self, path):
         self.path = path
-        self.config = config
-        self.root = Path(config['content'])
 
-        root = Path(config['content'])
-        self.relative_path = self.path.relative_to(root).parent
-        self.permalink = f'/{str(self.relative_path / path.name)}'
+        root = Path(self.config['content'])
+        self._relative_path = path.relative_to(root).parent
+        self.permalink = f'/{str(self._relative_path / path.name)}'
 
     def render(self):
-        build_dir = Path(self.config['output']) / self.relative_path
+        build_dir = Path(self.config['output']) / self._relative_path
         build_path = build_dir / self.path.name
 
         build_dir.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.path, build_path)
 
     # --------------------
+
     def print_tree(self, indent=0):
-        print(' ' * indent, f'[{self.permalink}]: ', end='')
-        print(self.path.name)
-
-
-class Section:
-
-    def __init__(self, path, config):
-        self.path = path
-        self.config = config
-        self.index = None
-        self.pages = []
-        self.assets = []
-        self.sections = []
-
-        for x in path.iterdir():
-            if x.is_file():
-                if x.suffix == '.md':
-                    if x.stem == 'index':
-                        self.index = Page(x, self, config, True)
-                    else:
-                        self.pages.append(Page(x, self, config))
-                else:
-                    self.assets.append(Asset(x, config))
-            else:
-                self.sections.append(Section(x, config))
-
-    def render(self):
-        if self.index:
-            self.index.render()
-        [x.render() for x in self.sections]
-        [x.render() for x in self.pages]
-        [x.render() for x in self.assets]
-
-    @property
-    def meta(self):
-        if self.index:
-            return self.index.meta
-        return {}
-
-    # --------------------
-    def print_tree(self, indent=0):
-        print(' ' * indent, end='')
-        if self.index:
-            self.index.print_tree()
-        else:
-            print(' [no index]: ', self.path)
-        [x.print_tree(indent + 4) for x in self.sections]
-        [x.print_tree(indent + 4) for x in self.pages]
-        [x.print_tree(indent + 4) for x in self.assets]
+        # print(' ' * indent, f'[{self.permalink}]: ', end='')
+        # print(self.path.name)
+        print(' ' * indent, self.path)
+        pass

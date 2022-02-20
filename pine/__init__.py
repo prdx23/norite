@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-from pine.build import Section
+from pine.build import tree
 
 import toml
 
@@ -22,10 +22,6 @@ def console():
 
     root = Path(config['content'])
 
-    s = Section(root, config)
-    # s.print_tree()
-    # print()
-
     if 'content' not in config:
         config['content'] = 'content'
 
@@ -34,4 +30,7 @@ def console():
         shutil.rmtree(output)
     output.mkdir()
 
-    s.render()
+    t = tree(root, config)
+    t.parse()
+    t.render()
+    print('rendered!')
