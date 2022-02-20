@@ -23,8 +23,8 @@ def console():
     root = Path(config['content'])
 
     s = Section(root, config)
-    s.print_tree()
-    print()
+    # s.print_tree()
+    # print()
 
     if 'content' not in config:
         config['content'] = 'content'
