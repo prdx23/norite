@@ -29,6 +29,8 @@ environment.filters['date_sort'] = date_sort
 environment.filters['date'] = date
 environment.globals['now'] = datetime.utcnow
 
+global_context = {}
+
 
 def extract_toml(lines):
     # find toml frontmatter if present
