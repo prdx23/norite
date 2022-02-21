@@ -82,6 +82,18 @@ class Page(Base):
         [x.render() for x in self.sections]
         [x.render() for x in self.assets]
 
+    def count(self):
+        inner = [x.count() for x in self.sections]
+
+        asset_count = sum(1 for x in self.assets)
+        asset_count += sum(x[1] for x in inner)
+
+        page_count = sum(x[0] for x in inner)
+        if not self.path.is_dir():
+            page_count += 1
+
+        return page_count, asset_count
+
 
 class Asset(Base):
 

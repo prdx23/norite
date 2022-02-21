@@ -13,6 +13,7 @@ setuptools.setup(
         'toml',
         'jinja2',
         'markdown',
+        'watchdog',
     ],
     entry_points={
         'console_scripts': ['pine=pine:console'],

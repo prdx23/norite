@@ -1,4 +1,5 @@
 import shutil
+import traceback
 from pathlib import Path
 
 from pine.utils import global_context
@@ -14,17 +15,30 @@ def build(config):
         shutil.rmtree(output)
     output.mkdir()
 
-    s = parsetree(static, static, output)
-    s.parse()
-    s.render()
-    # printtree(s)
+    try:
+        s = parsetree(static, static, output)
+        s.parse()
+        s.render()
+        # printtree(s)
 
-    global_context['static'] = s
-    global_context['config'] = config
+        global_context['static'] = s
+        global_context['config'] = config
 
-    t = parsetree(content, content, output)
-    t.parse()
-    t.render()
-    # printtree(t)
+        t = parsetree(content, content, output)
+        t.parse()
+        t.render()
+        # printtree(t)
 
-    print('--- Site built! ---')
+        c_count = t.count()
+        a_count = s.count()
+
+        print('Generating - ', end='')
+        print(f'{c_count[0] + a_count[0]} Pages, ', end='')
+        print(f'{c_count[1] + a_count[1]} Assets')
+        return True
+
+    except Exception as e:
+        print('\033[0;31m')
+        print(''.join(traceback.TracebackException.from_exception(e).format()))
+        print('\033[0m')
+        return False

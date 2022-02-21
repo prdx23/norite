@@ -77,6 +77,8 @@ def console():
         config['static'] = 'static'
 
     if args.command == 'build':
-        build(config)
+        if build(config):
+            print()
+            print('\033[0;32m\033[1m--- Site built! ---\033[0m')
     if args.command == 'serve':
         serve(config, args.bind, args.port)
