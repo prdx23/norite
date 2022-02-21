@@ -1,5 +1,6 @@
 import shutil
 import traceback
+import subprocess
 from pathlib import Path
 
 from pine.utils import global_context
@@ -16,21 +17,40 @@ def build(config):
     output.mkdir()
 
     try:
-        s = parsetree(static, static, output)
-        s.parse()
-        s.render()
-        # printtree(s)
+        asset_tree = parsetree(static, static, output)
+        asset_tree.parse()
+        asset_tree.render()
+        # printtree(asset_tree)
 
-        global_context['static'] = s
+        if config['compile_sass']:
+            result = subprocess.run(
+                [
+                    'sass',
+                    '--update',
+                    '--style', 'compressed',
+                    f'{Path("source/sass")}:{output / "css"}'
+                ],
+                capture_output=True
+            )
+            if result.returncode != 0:
+                print('\033[0;31m')
+                print('Sass Error:')
+                print(result.stderr.decode())
+                print('\033[0m')
+                # ]]
+                print()
+                return False
+
+        global_context['assets'] = asset_tree
         global_context['config'] = config
 
-        t = parsetree(content, content, output)
-        t.parse()
-        t.render()
-        # printtree(t)
+        content_tree = parsetree(content, content, output)
+        content_tree.parse()
+        content_tree.render()
+        # printtree(content_tree)
 
-        c_count = t.count()
-        a_count = s.count()
+        c_count = content_tree.count()
+        a_count = asset_tree.count()
 
         print('Generating - ', end='')
         print(f'{c_count[0] + a_count[0]} Pages, ', end='')

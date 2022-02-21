@@ -10,16 +10,8 @@ parser = argparse.ArgumentParser(
     prog='pine',
     description='A static site generator'
 )
-# parser.add_argument(
-#     '-p', '--port',
-#     type=int,
-#     default=1234,
-#     help='Specify alternate port [default:1234]',
-# )
-
 subparsers = parser.add_subparsers(
     title='Commands',
-    # action='store_true',
     dest='command',
     required=True,
     metavar='<command>',
@@ -47,15 +39,6 @@ serve_parser.add_argument(
     default='localhost',
 )
 
-# build_parser.add_argument(
-#     '-w', '--watch',
-#     action='store_true',
-#     help='watch the files for changes and re-build'
-# )
-
-# serve_parser = subparsers.add_parser('serve', help='serve help')
-# serve_parser.add_argument('-c', type=str, help='c2 help')
-
 
 def console():
     args = parser.parse_args()
@@ -65,17 +48,16 @@ def console():
         return
 
     with open('config.toml') as f:
-        config = toml.load(f)
+        toml_config = toml.load(f)
 
-    if 'content' not in config:
-        config['content'] = 'content'
+    config = {
+        'content': 'content',
+        'output': 'output',
+        'static': 'static',
+        'compile_sass': True,
+    }
 
-    if 'output' not in config:
-        config['output'] = 'output'
-
-    if 'static' not in config:
-        config['static'] = 'static'
-
+    config.update(toml_config)
     if args.command == 'build':
         if build(config):
             print()

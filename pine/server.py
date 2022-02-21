@@ -1,4 +1,5 @@
 import time
+import shutil
 from pathlib import Path
 from threading import Thread
 from functools import partial
@@ -54,7 +55,7 @@ class Watcher:
 
 class WatchHandler(FileSystemEventHandler):
 
-    def __init__(self, config, debounce=0.4):
+    def __init__(self, config, debounce=0.5):
         super().__init__()
         self.config = config
         self.debounce = debounce
@@ -63,6 +64,7 @@ class WatchHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         if not event.is_directory and event.event_type != 'closed':
             if time.time() - self.last_timestamp < self.debounce:
+                self.last_timestamp = time.time()
                 return
 
             self.last_timestamp = time.time()
@@ -81,8 +83,8 @@ class WatchHandler(FileSystemEventHandler):
 
 
 def serve(config, host='localhost', port=1234):
-    if not build(config):
-        return
+    config['output'] = '__live_server'
+    build(config)
 
     output = Path(config['output'])
     content = Path(config['content'])
@@ -102,4 +104,5 @@ def serve(config, host='localhost', port=1234):
 
     [w.stop() for w in watchers]
     [w.join() for w in watchers]
+    shutil.rmtree(output)
     print('bye!')
