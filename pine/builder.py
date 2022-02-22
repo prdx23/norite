@@ -4,7 +4,13 @@ import subprocess
 from pathlib import Path
 
 from pine.utils import global_context
+from pine.utils import ANSI_RED, ANSI_RESET
 from pine.parsetree import parsetree, printtree
+
+try:
+    import sass
+except:
+    sass = None
 
 
 def build(config):
@@ -14,7 +20,9 @@ def build(config):
 
     if output.exists():
         shutil.rmtree(output)
-    output.mkdir()
+
+    if not output.exists():
+        output.mkdir()
 
     try:
         asset_tree = parsetree(static, static, output)
@@ -22,7 +30,7 @@ def build(config):
         asset_tree.render()
         # printtree(asset_tree)
 
-        if config['compile_sass']:
+        if config['compile_sass'] and config['sass_compiler'] == 'dartsass':
             result = subprocess.run(
                 [
                     'sass',
@@ -33,15 +41,22 @@ def build(config):
                 capture_output=True
             )
             if result.returncode != 0:
-                print('\033[0;31m')
-                print('Sass Error:')
-                print(result.stderr.decode())
-                print('\033[0m')
-                # ]]
+                print(f'{ANSI_RED}Sass Error:')
+                print(f'{result.stderr.decode()}{ANSI_RESET}')
                 print()
                 return False
 
-        global_context['assets'] = asset_tree
+        if config['compile_sass'] and config['sass_compiler'] == 'libsass':
+            if not sass:
+                print(f'{ANSI_RED}libSass not found')
+                print(f'install with "pip install libasass"{ANSI_RESET}')
+            else:
+                sass.compile(
+                    dirname=('source/sass', output / 'css'),
+                    output_style='compressed',
+                )
+
+        global_context['static'] = asset_tree
         global_context['config'] = config
 
         content_tree = parsetree(content, content, output)
@@ -58,7 +73,7 @@ def build(config):
         return True
 
     except Exception as e:
-        print('\033[0;31m')
+        print(ANSI_RED)
         print(''.join(traceback.TracebackException.from_exception(e).format()))
-        print('\033[0m')
+        print(ANSI_RESET)
         return False

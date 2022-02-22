@@ -15,18 +15,18 @@ def date_sort(array, reverse=False):
     return sorted(valid, key=lambda x: x.date, reverse=reverse)
 
 
-def date(value, format="%y-%m-%d"):
+def strftime(value, format="%y-%m-%d"):
     return value.strftime(format)
 
 
-md = Markdown()
+md = Markdown(output_format='html5')
 environment = Environment(
     loader=FileSystemLoader('source/templates'),
     autoescape=select_autoescape(),
 )
 environment.filters['weight_sort'] = weight_sort
 environment.filters['date_sort'] = date_sort
-environment.filters['date'] = date
+environment.filters['strftime'] = strftime
 environment.globals['now'] = datetime.utcnow
 
 global_context = {}
@@ -53,3 +53,9 @@ def extract_toml(lines):
     lines[toml_i[1]] = ''
 
     return lines, toml.loads(toml_str)
+
+
+ANSI_RED = '\033[0;31m'
+ANSI_YELLOW = '\033[0;33m'
+ANSI_GREEN = '\033[0;32m\033[1m'
+ANSI_RESET = '\033[0m'

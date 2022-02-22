@@ -34,12 +34,13 @@ def printtree(section, indent=0):
     # print(' ' * indent, f'[]: ', end='')
     # print('parent:', section.parent, '  - ', section.path)
     # print(' ' * indent, section.path)
-    # # print(' ' * indent, 'template: ', section.template)
+    # print(' ' * indent, 'template: ', section.template)
     # print(' ' * indent, 'child_template: ', section.child_template)
     # print(' ' * indent, 'parent: ', section.parent)
     # print(' ' * indent, 'permalink: ', section.permalink)
     # print(' ' * indent, 'sections: ', section.sections)
     # print(' ' * indent, 'assets: ', section.assets)
+    # print(' ' * indent, 'root: ', section.root)
     # print()
 
     [printtree(x, indent + 4) for x in section.sections]

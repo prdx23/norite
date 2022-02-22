@@ -2,9 +2,28 @@ import shutil
 from pathlib import Path
 
 from pine.utils import extract_toml, md, environment, global_context
+from pine.utils import ANSI_YELLOW, ANSI_RESET
 
 
 class Base:
+
+    reserved = [
+        'is_page', 'is_asset',
+        'permalink',
+        'path', 'parent', 'root',
+        'sections', 'assets',
+        'parse', 'render',
+        '_build_dir', '_build_path', '_set_root'
+    ]
+
+    def parse(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def render(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def _set_root(self, *args, **kwargs):
+        raise NotImplementedError
 
     def __repr__(self):
         return f'{self.__class__.__name__}<{self.path}>'
@@ -21,6 +40,11 @@ class Page(Base):
         self.parent = None
         self.sections = [x for x in children if x and x.is_page]
         self.assets = [x for x in children if x and x.is_asset]
+
+        if self.path == root:
+            self._set_root(self)
+        elif self.path.parent == root and self.path.name == 'index.md':
+            self._set_root(self)
 
         for x in self.sections:
             x.parent = self
@@ -41,6 +65,11 @@ class Page(Base):
         self._build_dir = output / relative_path
         self._build_path = self._build_dir / Path('index.html')
 
+    def _set_root(self, page):
+        self.root = page
+        [x._set_root(page) for x in self.sections]
+        [x._set_root(page) for x in self.assets]
+
     def parse(self):
 
         self.template = 'index.html'
@@ -60,7 +89,13 @@ class Page(Base):
             self.child_template = self.parent.child_template
 
         for key, value in toml.items():
-            setattr(self, key, value)
+            if key not in self.reserved:
+                setattr(self, key, value)
+            else:
+                print(
+                    f'{ANSI_YELLOW}Warning: Ignoring key "{key}" '
+                    f'in frontmatter of "{self.path}"{ANSI_RESET}'
+                )
 
         self.content = md.convert(''.join(lines))
 
@@ -106,6 +141,9 @@ class Asset(Base):
         self.permalink = f'/{str(relative_path / path.name)}'
         self._build_dir = output / relative_path
         self._build_path = self._build_dir / self.path.name
+
+    def _set_root(self, page):
+        self.root = page
 
     def render(self):
         self._build_dir.mkdir(parents=True, exist_ok=True)

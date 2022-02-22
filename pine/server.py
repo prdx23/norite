@@ -5,6 +5,7 @@ from threading import Thread
 from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
+from pine.utils import ANSI_GREEN, ANSI_RESET
 from pine.builder import build
 
 from watchdog.observers import Observer
@@ -55,8 +56,9 @@ class Watcher:
 
 class WatchHandler(FileSystemEventHandler):
 
-    def __init__(self, config, debounce=0.5):
-        super().__init__()
+    def __init__(self, name, config, *args, debounce=0.4, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = name
         self.config = config
         self.debounce = debounce
         self.last_timestamp = time.time()
@@ -64,7 +66,7 @@ class WatchHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         if not event.is_directory and event.event_type != 'closed':
             if time.time() - self.last_timestamp < self.debounce:
-                self.last_timestamp = time.time()
+                # self.last_timestamp = time.time()
                 return
 
             self.last_timestamp = time.time()
@@ -75,11 +77,8 @@ class WatchHandler(FileSystemEventHandler):
 
             if build(self.config):
                 end = round((time.time() - start) * 1000, 2)
-                print('\033[0;32m\033[1m', end='')
-                print(f'--- Site rebuilt! [ {end}ms ] ---', end='')
-                print('\033[0m')
-                # ]]]
-                print()
+                print(ANSI_GREEN)
+                print(f'--- Site rebuilt! [ {end}ms ] ---{ANSI_RESET}')
 
 
 def serve(config, host='localhost', port=1234):
@@ -89,20 +88,24 @@ def serve(config, host='localhost', port=1234):
     output = Path(config['output'])
     content = Path(config['content'])
     static = Path(config['static'])
+    source = Path('source')
 
-    print()
+    debounce = 0.4
+    if config['compile_sass'] and config['sass_compiler'] == 'dartsass':
+        debounce = 1
+
     watchers = [
-        Watcher(content, WatchHandler(config)),
-        Watcher(static, WatchHandler(config)),
-        Watcher(Path('source'), WatchHandler(config)),
+        Watcher(content, WatchHandler('content', config, debounce=debounce)),
+        Watcher(static, WatchHandler('static', config, debounce=debounce)),
+        Watcher(source, WatchHandler('source', config, debounce=debounce)),
     ]
     [w.run() for w in watchers]
 
-    print()
     server = Server()
     server.run(output, host, port)
 
     [w.stop() for w in watchers]
     [w.join() for w in watchers]
     shutil.rmtree(output)
+
     print('bye!')

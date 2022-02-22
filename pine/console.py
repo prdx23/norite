@@ -1,8 +1,10 @@
+import time
 import argparse
 from pathlib import Path
 
 from pine.builder import build
 from pine.server import serve
+from pine.utils import ANSI_GREEN, ANSI_RESET
 
 import toml
 
@@ -54,13 +56,19 @@ def console():
         'content': 'content',
         'output': 'output',
         'static': 'static',
-        'compile_sass': True,
+        'compile_sass': False,
+        'sass_compiler': 'libsass',
     }
 
     config.update(toml_config)
+    if config['sass_compiler'] not in ['libsass', 'dartsass']:
+        config['sass_compiler'] = 'libsass'
+
     if args.command == 'build':
+        start = time.time()
         if build(config):
-            print()
-            print('\033[0;32m\033[1m--- Site built! ---\033[0m')
+            end = round((time.time() - start) * 1000, 2)
+            print(ANSI_GREEN)
+            print(f'--- Site built! [ {end}ms ] ---{ANSI_RESET}')
     if args.command == 'serve':
         serve(config, args.bind, args.port)
