@@ -97,7 +97,7 @@ class Page(Base):
                     f'in frontmatter of "{self.path}"{ANSI_RESET}'
                 )
 
-        self.content = md.convert(''.join(lines))
+        self.content = md.reset().convert(''.join(lines))
 
         [x.parse() for x in self.sections]
 

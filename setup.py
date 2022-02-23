@@ -14,6 +14,7 @@ setuptools.setup(
         'jinja2',
         'markdown',
         'watchdog',
+        'pygments',
     ],
     entry_points={
         'console_scripts': ['pine=pine:console'],

@@ -19,7 +19,21 @@ def strftime(value, format="%y-%m-%d"):
     return value.strftime(format)
 
 
-md = Markdown(output_format='html5')
+md = Markdown(
+    output_format='html5',
+    extensions=['extra', 'codehilite'],
+    extension_configs={
+        'extra': {
+            'footnotes': {},
+            'fenced_code': {},
+        },
+        'codehilite': {
+            'css_class': 'highlight',
+            'guess_lang': False,
+        }
+    },
+)
+
 environment = Environment(
     loader=FileSystemLoader('source/templates'),
     autoescape=select_autoescape(),
