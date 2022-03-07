@@ -1,25 +1,29 @@
 import shutil
 from pathlib import Path
 
-from pine.utils import extract_toml, md, environment, global_context
+from pine.utils import extract_toml, parse_toml
+from pine.utils import md, environment, global_context
 from pine.utils import ANSI_YELLOW, ANSI_RESET
 
 
 class Base:
 
-    reserved = [
+    _reserved = [
         'is_page', 'is_asset',
         'permalink',
         'path', 'parent', 'root',
         'sections', 'assets',
-        'parse', 'render',
-        '_build_dir', '_build_path', '_set_root'
     ]
 
-    def parse(self, *args, **kwargs):
+    _base_names = [
+        'index.md',
+        'index.toml',
+    ]
+
+    def _parse(self, *args, **kwargs):
         raise NotImplementedError
 
-    def render(self, *args, **kwargs):
+    def _render(self, *args, **kwargs):
         raise NotImplementedError
 
     def _set_root(self, *args, **kwargs):
@@ -43,7 +47,7 @@ class Page(Base):
 
         if self.path == root:
             self._set_root(self)
-        elif self.path.parent == root and self.path.name == 'index.md':
+        elif self.path.parent == root and self.path.name in self._base_names:
             self._set_root(self)
 
         for x in self.sections:
@@ -51,7 +55,7 @@ class Page(Base):
 
         relative_path = path.relative_to(root).parent
 
-        if path.is_file() and path.name != 'index.md':
+        if path.is_file() and path.name not in self._base_names:
             relative_path = relative_path / self.path.stem
 
         if path.is_file():
@@ -70,26 +74,29 @@ class Page(Base):
         [x._set_root(page) for x in self.sections]
         [x._set_root(page) for x in self.assets]
 
-    def parse(self):
+    def _parse(self):
 
         self.template = 'index.html'
         self.child_template = 'index.html'
 
         if self.path.is_dir():
-            [x.parse() for x in self.sections]
+            [x._parse() for x in self.sections]
             return
 
         with self.path.open('r') as f:
             lines = f.readlines()
 
-        lines, toml = extract_toml(lines)
+        if self.path.suffix == '.toml':
+            lines, toml = parse_toml(lines)
+        else:
+            lines, toml = extract_toml(lines)
 
         if self.parent:
             self.template = self.parent.child_template
             self.child_template = self.parent.child_template
 
         for key, value in toml.items():
-            if key not in self.reserved:
+            if key not in self._reserved and key[0] != '_':
                 setattr(self, key, value)
             else:
                 print(
@@ -97,25 +104,29 @@ class Page(Base):
                     f'in frontmatter of "{self.path}"{ANSI_RESET}'
                 )
 
-        self.content = md.reset().convert(''.join(lines))
+        self._raw_content = ''.join(lines)
 
-        [x.parse() for x in self.sections]
+        [x._parse() for x in self.sections]
 
-    def render(self):
+    def _render(self):
         if self.path.is_dir():
-            [x.render() for x in self.sections]
-            [x.render() for x in self.assets]
+            [x._render() for x in self.sections]
+            [x._render() for x in self.assets]
             return
 
         self._build_dir.mkdir(parents=True, exist_ok=True)
+
+        md_template = environment.from_string(self._raw_content)
+        templated_content = md_template.render(page=self, **global_context)
+        self.content = md.reset().convert(templated_content)
 
         template = environment.get_template(self.template)
         rendered = template.render(page=self, **global_context)
         with self._build_path.open('w') as f:
             f.write(rendered)
 
-        [x.render() for x in self.sections]
-        [x.render() for x in self.assets]
+        [x._render() for x in self.sections]
+        [x._render() for x in self.assets]
 
     def count(self):
         inner = [x.count() for x in self.sections]
@@ -145,6 +156,6 @@ class Asset(Base):
     def _set_root(self, page):
         self.root = page
 
-    def render(self):
+    def _render(self):
         self._build_dir.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.path, self._build_path)

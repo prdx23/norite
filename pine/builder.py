@@ -26,8 +26,8 @@ def build(config):
 
     try:
         asset_tree = parsetree(static, static, output)
-        asset_tree.parse()
-        asset_tree.render()
+        asset_tree._parse()
+        asset_tree._render()
         # printtree(asset_tree)
 
         if config['compile_sass'] and config['sass_compiler'] == 'dartsass':
@@ -60,8 +60,8 @@ def build(config):
         global_context['config'] = config
 
         content_tree = parsetree(content, content, output)
-        content_tree.parse()
-        content_tree.render()
+        content_tree._parse()
+        content_tree._render()
         # printtree(content_tree)
 
         c_count = content_tree.count()

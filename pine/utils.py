@@ -19,6 +19,10 @@ def strftime(value, format="%y-%m-%d"):
     return value.strftime(format)
 
 
+def markdown_filter(content):
+    return md.reset().convert(content)
+
+
 md = Markdown(
     output_format='html5',
     extensions=['extra', 'codehilite'],
@@ -41,6 +45,8 @@ environment = Environment(
 environment.filters['weight_sort'] = weight_sort
 environment.filters['date_sort'] = date_sort
 environment.filters['strftime'] = strftime
+environment.filters['markdown'] = markdown_filter
+environment.filters['md'] = markdown_filter
 environment.globals['now'] = datetime.utcnow
 
 global_context = {}
@@ -67,6 +73,10 @@ def extract_toml(lines):
     lines[toml_i[1]] = ''
 
     return lines, toml.loads(toml_str)
+
+
+def parse_toml(lines):
+    return [], toml.loads(''.join(lines))
 
 
 ANSI_RED = '\033[0;31m'

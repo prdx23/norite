@@ -3,17 +3,18 @@ from pine.Page import Page, Asset
 
 def parsetree(path, root, output):
 
-    if path.is_file() and path.suffix == '.md' and path.stem != 'index':
-        return Page(path, root, output)
+    if path.is_file():
+        if path.suffix == '.md' and path.stem != 'index':
+            return Page(path, root, output)
 
-    if path.is_file() and path.suffix != '.md':
-        return Asset(path, root, output)
+        if path.suffix != '.md' and path.name not in Page._base_names:
+            return Asset(path, root, output)
 
     if path.is_dir():
         children = list(path.iterdir())
         inner = [parsetree(x, root, output) for x in children]
 
-        index = [x for x in children if x.name == 'index.md']
+        index = [x for x in children if x.name in Page._base_names]
         if index:
             return Page(index[0], root, output, inner)
 
