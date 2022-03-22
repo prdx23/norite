@@ -1,6 +1,6 @@
+
 from datetime import datetime
 
-import toml
 from markdown import Markdown
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -48,38 +48,3 @@ environment.filters['strftime'] = strftime
 environment.filters['markdown'] = markdown_filter
 environment.filters['md'] = markdown_filter
 environment.globals['now'] = datetime.utcnow
-
-global_context = {}
-
-
-def extract_toml(lines):
-    # find toml frontmatter if present
-    toml_i = []
-    for i, line in enumerate(lines):
-        if line.strip() == '---':
-            toml_i.append(i)
-
-    # toml not found, return empty dict
-    if len(toml_i) != 2:
-        return lines, {}
-
-    # parse toml fromtmatter
-    toml_str = ''
-    for i in range(toml_i[0] + 1, toml_i[1]):
-        toml_str += lines[i]
-        lines[i] = ''
-
-    lines[toml_i[0]] = ''
-    lines[toml_i[1]] = ''
-
-    return lines, toml.loads(toml_str)
-
-
-def parse_toml(lines):
-    return [], toml.loads(''.join(lines))
-
-
-ANSI_RED = '\033[0;31m'
-ANSI_YELLOW = '\033[0;33m'
-ANSI_GREEN = '\033[0;32m\033[1m'
-ANSI_RESET = '\033[0m'

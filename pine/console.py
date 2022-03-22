@@ -2,9 +2,10 @@ import time
 import argparse
 from pathlib import Path
 
-from pine.builder import build
-from pine.server import serve
-from pine.utils import ANSI_GREEN, ANSI_RESET
+from pine.core import default_config
+from pine.core.builder import build
+from pine.utils.server import serve
+from pine.utils.colors import ANSI_GREEN, ANSI_RESET
 
 import toml
 
@@ -52,17 +53,10 @@ def console():
     with open('config.toml') as f:
         toml_config = toml.load(f)
 
-    config = {
-        'content': 'content',
-        'output': 'output',
-        'static': 'static',
-        'compile_sass': False,
-        'sass_compiler': 'libsass',
-    }
-
+    config = default_config
     config.update(toml_config)
-    if config['sass_compiler'] not in ['libsass', 'dartsass']:
-        config['sass_compiler'] = 'libsass'
+    if config['sass']['compiler'] not in ['libsass', 'dartsass']:
+        config['sass']['compiler'] = 'libsass'
 
     if args.command == 'build':
         start = time.time()

@@ -5,8 +5,8 @@ from threading import Thread
 from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
-from pine.utils import ANSI_GREEN, ANSI_RESET
-from pine.builder import build
+from pine.core.builder import build
+from pine.utils.colors import ANSI_GREEN, ANSI_RESET
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -91,7 +91,7 @@ def serve(config, host='localhost', port=1234):
     source = Path('source')
 
     debounce = 0.4
-    if config['compile_sass'] and config['sass_compiler'] == 'dartsass':
+    if config['sass']['enable'] and config['sass']['compiler'] == 'dartsass':
         debounce = 1
 
     watchers = [
