@@ -10,7 +10,6 @@ except:
 
 
 def compile_sass(config, output):
-    print('sass2')
     if config['sass']['compiler'] == 'dartsass':
         result = subprocess.run(
             [

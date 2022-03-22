@@ -1,4 +1,7 @@
 import toml
+import collections.abc
+
+from pine.utils.colors import ANSI_YELLOW, ANSI_RESET
 
 
 def extract_toml(lines):
@@ -26,3 +29,50 @@ def extract_toml(lines):
 
 def parse_toml(lines):
     return [], toml.loads(''.join(lines))
+
+
+def parse_toml_config(path):
+
+    with open('config.toml') as f:
+        toml_config = toml.load(f)
+
+    default_config = {
+
+        'content': 'content',
+        'output': 'output',
+        'static': 'static',
+
+        'baseurl': 'https://example.com',
+
+        'sass': {
+            'enable': False,
+            'compiler': 'libsass',
+        },
+
+        'rss': {
+            'enable': False,
+            'filename': 'rss.xml',
+        },
+
+        'extra': {
+        },
+
+    }
+
+    config = {}
+    for k, v in default_config.items():
+        if isinstance(v, collections.abc.Mapping):
+            v.update(toml_config.get(k, {}))
+            config[k] = v
+        else:
+            config[k] = toml_config.get(k, v)
+
+    if config['sass']['compiler'] not in ['libsass', 'dartsass']:
+        config['sass']['compiler'] = 'libsass'
+
+    if config['baseurl'] == 'https://example.com':
+        print(f'{ANSI_YELLOW}Warning:', end='')
+        print(f' "baseurl" missing in config, using "{config["baseurl"]}"')
+        print(ANSI_RESET)
+
+    return config

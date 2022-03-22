@@ -2,12 +2,12 @@ import time
 import argparse
 from pathlib import Path
 
-from pine.core import default_config
 from pine.core.builder import build
+from pine.core.toml import parse_toml_config
+
 from pine.utils.server import serve
 from pine.utils.colors import ANSI_GREEN, ANSI_RESET
 
-import toml
 
 parser = argparse.ArgumentParser(
     prog='pine',
@@ -50,13 +50,7 @@ def console():
         print('config.toml not found')
         return
 
-    with open('config.toml') as f:
-        toml_config = toml.load(f)
-
-    config = default_config
-    config.update(toml_config)
-    if config['sass']['compiler'] not in ['libsass', 'dartsass']:
-        config['sass']['compiler'] = 'libsass'
+    config = parse_toml_config(Path('config.toml'))
 
     if args.command == 'build':
         start = time.time()

@@ -1,5 +1,5 @@
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from markdown import Markdown
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -47,4 +47,4 @@ environment.filters['date_sort'] = date_sort
 environment.filters['strftime'] = strftime
 environment.filters['markdown'] = markdown_filter
 environment.filters['md'] = markdown_filter
-environment.globals['now'] = datetime.utcnow
+environment.globals['now'] = lambda: datetime.now(timezone.utc)

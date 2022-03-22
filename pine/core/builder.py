@@ -3,6 +3,7 @@ import traceback
 from pathlib import Path
 
 from pine.core import global_context
+from pine.utils.rss import compile_rss
 from pine.utils.sass import compile_sass
 from pine.utils.colors import ANSI_RED, ANSI_RESET
 from pine.core.parsetree import parsetree, printtree
@@ -35,6 +36,9 @@ def build(config):
         content_tree._parse()
         content_tree._render()
         # printtree(content_tree)
+
+        if config['rss']['enable']:
+            compile_rss(content_tree, global_context)
 
         c_count = content_tree.count()
         a_count = asset_tree.count()
