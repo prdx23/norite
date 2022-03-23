@@ -23,6 +23,14 @@ def markdown_filter(content):
     return md.reset().convert(content)
 
 
+def all_pages(page):
+    pages = []
+    for section in page.sections:
+        pages.append(section)
+        pages += all_pages(section)
+    return pages
+
+
 md = Markdown(
     output_format='html5',
     extensions=['extra', 'codehilite'],
@@ -45,6 +53,7 @@ environment = Environment(
 environment.filters['weight_sort'] = weight_sort
 environment.filters['date_sort'] = date_sort
 environment.filters['strftime'] = strftime
+environment.filters['all_pages'] = all_pages
 environment.filters['markdown'] = markdown_filter
 environment.filters['md'] = markdown_filter
 environment.globals['now'] = lambda: datetime.now(timezone.utc)
