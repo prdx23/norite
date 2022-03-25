@@ -1,10 +1,10 @@
 import shutil
 from pathlib import Path
 
-from pine.core import global_context
-from pine.core.env import md, environment
-from pine.core.toml import extract_toml, parse_toml
-from pine.utils.colors import ANSI_YELLOW, ANSI_RESET
+from norite.core import global_context
+from norite.core.env import md, environment
+from norite.core.toml import extract_toml, parse_toml
+from norite.utils.colors import ANSI_YELLOW, ANSI_RESET
 
 
 class Base:

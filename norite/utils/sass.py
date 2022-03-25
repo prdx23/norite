@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from pine.utils.colors import ANSI_RED, ANSI_RESET
+from norite.utils.colors import ANSI_RED, ANSI_RESET
 
 try:
     import sass

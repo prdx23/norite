@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pine.core.env import environment
+from norite.core.env import environment
 
 
 sitemap_template = '''

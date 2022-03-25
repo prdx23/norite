@@ -1,7 +1,7 @@
 import toml
 import collections.abc
 
-from pine.utils.colors import ANSI_YELLOW, ANSI_RESET
+from norite.utils.colors import ANSI_YELLOW, ANSI_RESET
 
 
 def extract_toml(lines):

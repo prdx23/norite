@@ -2,12 +2,12 @@ import shutil
 import traceback
 from pathlib import Path
 
-from pine.core import global_context
-from pine.utils.rss import compile_rss
-from pine.utils.sass import compile_sass
-from pine.utils.sitemap import generate_sitemap
-from pine.utils.colors import ANSI_RED, ANSI_RESET
-from pine.core.parsetree import parsetree, printtree
+from norite.core import global_context
+from norite.utils.rss import compile_rss
+from norite.utils.sass import compile_sass
+from norite.utils.sitemap import generate_sitemap
+from norite.utils.colors import ANSI_RED, ANSI_RESET
+from norite.core.parsetree import parsetree, printtree
 
 
 def build(config):

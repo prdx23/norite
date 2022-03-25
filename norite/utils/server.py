@@ -5,8 +5,8 @@ from threading import Thread
 from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
-from pine.core.builder import build
-from pine.utils.colors import ANSI_GREEN, ANSI_RESET
+from norite.core.builder import build
+from norite.utils.colors import ANSI_GREEN, ANSI_RESET
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler

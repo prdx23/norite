@@ -2,7 +2,7 @@ import setuptools
 
 
 setuptools.setup(
-    name='pine',
+    name='norite',
     version='0.1',
     author='Arsh',
     author_email='hi@prdx.me',
@@ -17,6 +17,6 @@ setuptools.setup(
         'pygments',
     ],
     entry_points={
-        'console_scripts': ['pine=pine:console'],
+        'console_scripts': ['norite=norite:console'],
     }
 )

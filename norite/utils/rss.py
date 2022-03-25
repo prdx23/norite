@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from pine.core.env import environment
-from pine.utils.colors import ANSI_RED, ANSI_RESET
+from norite.core.env import environment
+from norite.utils.colors import ANSI_RED, ANSI_RESET
 
 
 def compile_rss(content_tree, global_context):

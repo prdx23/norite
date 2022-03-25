@@ -1,4 +1,4 @@
-from pine.core.Page import Page, Asset
+from norite.core.Page import Page, Asset
 
 
 def parsetree(path, root, output):

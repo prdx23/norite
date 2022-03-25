@@ -2,15 +2,15 @@ import time
 import argparse
 from pathlib import Path
 
-from pine.core.builder import build
-from pine.core.toml import parse_toml_config
+from norite.core.builder import build
+from norite.core.toml import parse_toml_config
 
-from pine.utils.server import serve
-from pine.utils.colors import ANSI_GREEN, ANSI_RESET
+from norite.utils.server import serve
+from norite.utils.colors import ANSI_GREEN, ANSI_RESET
 
 
 parser = argparse.ArgumentParser(
-    prog='pine',
+    prog='norite',
     description='A static site generator'
 )
 subparsers = parser.add_subparsers(
