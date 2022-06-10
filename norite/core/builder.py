@@ -1,20 +1,64 @@
+import os
 import shutil
 import traceback
 from pathlib import Path
 
 from norite.core import global_context
+from norite.core.Page import Page, Asset
 from norite.utils.rss import compile_rss
 from norite.utils.sass import compile_sass
 from norite.utils.sitemap import generate_sitemap
-from norite.utils.colors import ANSI_RED, ANSI_RESET
-from norite.core.parsetree import parsetree, printtree
+from norite.utils.print_helpers import print_error, print_warning
+
+
+def parsetree(path, root, output):
+
+    if path.is_file():
+        if path.suffix == '.md' and path.stem != 'index':
+            return Page(path, root, output)
+
+        if path.suffix != '.md' and path.name not in Page._base_names:
+            return Asset(path, root, output)
+
+    if path.is_dir():
+        children = list(path.iterdir())
+        inner = [parsetree(x, root, output) for x in children]
+
+        index = [x for x in children if x.name in Page._base_names]
+        if index:
+            return Page(index[0], root, output, inner)
+
+        return Page(path, root, output, inner)
 
 
 def build(config):
     content = Path(config['content'])
     output = Path(config['output'])
     static = Path(config['static'])
+    templates = Path('source/templates')
 
+    # content path validation
+    if not content.exists():
+        print_error(f'Error: content directory "./{content}" not found')
+        return False
+
+    if not any(os.scandir(content)):
+        print_warning('Warning: content directory is empty')
+
+    # static path validation
+    if not static.exists():
+        print_error(f'Error: static directory "./{static}" not found')
+        return False
+
+    # templates path validation
+    if not templates.exists():
+        print_error(f'Error: templates directory "./{templates}" not found')
+        return False
+
+    if not any(os.scandir(templates)):
+        print_warning('Warning: templates directory is empty')
+
+    # output path cleanup
     if output.exists():
         shutil.rmtree(output)
 
@@ -25,7 +69,6 @@ def build(config):
         asset_tree = parsetree(static, static, output)
         asset_tree._parse()
         asset_tree._render()
-        # printtree(asset_tree)
 
         if config['sass']['enable']:
             compile_sass(config, output)
@@ -36,7 +79,6 @@ def build(config):
         content_tree = parsetree(content, content, output)
         content_tree._parse()
         content_tree._render()
-        # printtree(content_tree)
 
         if config['rss']['enable']:
             compile_rss(content_tree, global_context)
@@ -52,7 +94,8 @@ def build(config):
         return True
 
     except Exception as e:
-        print(ANSI_RED)
-        print(''.join(traceback.TracebackException.from_exception(e).format()))
-        print(ANSI_RESET)
+        print()
+        print_error(
+            ''.join(traceback.TracebackException.from_exception(e).format())
+        )
         return False

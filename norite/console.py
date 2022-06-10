@@ -5,8 +5,9 @@ from pathlib import Path
 from norite.core.builder import build
 from norite.core.toml import parse_toml_config
 
+from norite.utils.init import init
 from norite.utils.server import serve
-from norite.utils.colors import ANSI_GREEN, ANSI_RESET
+from norite.utils.print_helpers import print_success
 
 
 parser = argparse.ArgumentParser(
@@ -18,6 +19,11 @@ subparsers = parser.add_subparsers(
     dest='command',
     required=True,
     metavar='<command>',
+)
+
+init_parser = subparsers.add_parser(
+    'init',
+    help='Initialize a new project in current directory'
 )
 
 build_parser = subparsers.add_parser(
@@ -46,6 +52,11 @@ serve_parser.add_argument(
 def console():
     args = parser.parse_args()
 
+    if args.command == 'init':
+        init()
+        print_success('\nNew project initialized!')
+        return
+
     if not Path('config.toml').exists():
         print('config.toml not found')
         return
@@ -56,7 +67,7 @@ def console():
         start = time.time()
         if build(config):
             end = round((time.time() - start) * 1000, 2)
-            print(ANSI_GREEN)
-            print(f'--- Site built! [ {end}ms ] ---{ANSI_RESET}')
+            print_success(f'\n--- Site built! [ {end}ms ] ---')
+
     if args.command == 'serve':
         serve(config, args.bind, args.port)

@@ -1,7 +1,7 @@
 import toml
 import collections.abc
 
-from norite.utils.colors import ANSI_YELLOW, ANSI_RESET
+from norite.utils.print_helpers import print_warning
 
 
 def extract_toml(lines):
@@ -39,7 +39,7 @@ def parse_toml_config(path):
     default_config = {
 
         'content': 'content',
-        'output': 'output',
+        'output': 'dist',
         'static': 'static',
 
         'baseurl': 'https://example.com',
@@ -68,11 +68,16 @@ def parse_toml_config(path):
             config[k] = toml_config.get(k, v)
 
     if config['sass']['compiler'] not in ['libsass', 'dartsass']:
+        print_warning(
+            'Warning: sass compiler should be one of "libsass" or "dartsass"'
+            ', using - "libsass"'
+        )
         config['sass']['compiler'] = 'libsass'
 
     if config['baseurl'] == 'https://example.com':
-        print(f'{ANSI_YELLOW}Warning:', end='')
-        print(f' "baseurl" missing in config, using "{config["baseurl"]}"')
-        print(ANSI_RESET)
+        print_warning(
+            'Warning: "baseurl" missing in config, '
+            f'using "{config["baseurl"]}" as placeholder'
+        )
 
     return config

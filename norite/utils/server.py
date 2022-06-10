@@ -6,7 +6,7 @@ from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 from norite.core.builder import build
-from norite.utils.colors import ANSI_GREEN, ANSI_RESET
+from norite.utils.print_helpers import print_success
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -77,8 +77,7 @@ class WatchHandler(FileSystemEventHandler):
 
             if build(self.config):
                 end = round((time.time() - start) * 1000, 2)
-                print(ANSI_GREEN)
-                print(f'--- Site rebuilt! [ {end}ms ] ---{ANSI_RESET}')
+                print_success(f'\n--- Site rebuilt! [ {end}ms ] ---')
 
 
 def serve(config, host='localhost', port=1234):

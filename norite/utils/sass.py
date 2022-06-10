@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from norite.utils.colors import ANSI_RED, ANSI_RESET
+from norite.utils.print_helpers import print_error
 
 try:
     import sass
@@ -21,15 +21,13 @@ def compile_sass(config, output):
             capture_output=True
         )
         if result.returncode != 0:
-            print(f'{ANSI_RED}Sass Error:')
-            print(f'{result.stderr.decode()}{ANSI_RESET}')
-            print()
+            print_error(f'Sass Error: \n{result.stderr.decode()}\n')
             return False
 
     if config['sass']['compiler'] == 'libsass':
         if not sass:
-            print(f'{ANSI_RED}libSass not found')
-            print(f'install with "pip install libasass"{ANSI_RESET}')
+            print_error('libSass not found')
+            print_error('install with "pip install libsass"')
         else:
             sass.compile(
                 dirname=('source/sass', output / 'css'),

@@ -4,7 +4,7 @@ from pathlib import Path
 from norite.core import global_context
 from norite.core.env import md, environment
 from norite.core.toml import extract_toml, parse_toml
-from norite.utils.colors import ANSI_YELLOW, ANSI_RESET
+from norite.utils.print_helpers import print_warning
 
 
 class Base:
@@ -100,9 +100,9 @@ class Page(Base):
             if key not in self._reserved and key[0] != '_':
                 setattr(self, key, value)
             else:
-                print(
-                    f'{ANSI_YELLOW}Warning: Ignoring key "{key}" '
-                    f'in frontmatter of "{self.path}"{ANSI_RESET}'
+                print_warning(
+                    f'Warning: Ignoring key "{key}" '
+                    f'in frontmatter of "{self.path}"'
                 )
 
         self._raw_content = ''.join(lines)

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from norite.core.env import environment
-from norite.utils.colors import ANSI_RED, ANSI_RESET
+from norite.utils.print_helpers import print_error
 
 
 def compile_rss(content_tree, global_context):
@@ -10,9 +10,7 @@ def compile_rss(content_tree, global_context):
     rss_template_file = Path('source/templates') / filename
 
     if not rss_template_file.exists():
-        print(ANSI_RED)
-        print(f'rss template "{rss_template_file}" not found')
-        print(ANSI_RESET)
+        print_error(f'\nrss template "{rss_template_file}" not found\n')
         return
 
     rss_template = environment.get_template(rss_template_file.name)
