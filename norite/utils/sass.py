@@ -21,7 +21,7 @@ def compile_sass(config, output):
             capture_output=True
         )
         if result.returncode != 0:
-            print_error(f'Sass Error: \n{result.stderr.decode()}\n')
+            print_error(f'\nSass Error: \n{result.stderr.decode()}\n')
             return False
 
     if config['sass']['compiler'] == 'libsass':

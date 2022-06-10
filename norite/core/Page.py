@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 
@@ -19,6 +20,7 @@ class Base:
     _base_names = [
         'index.md',
         'index.toml',
+        'index.json',
     ]
 
     def _parse(self, *args, **kwargs):
@@ -89,6 +91,8 @@ class Page(Base):
 
         if self.path.suffix == '.toml':
             lines, toml = parse_toml(lines)
+        elif self.path.suffix == '.json':
+            lines, toml = [], json.loads(''.join(lines))
         else:
             lines, toml = extract_toml(lines)
 

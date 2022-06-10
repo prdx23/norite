@@ -8,6 +8,7 @@ from norite.core.Page import Page, Asset
 from norite.utils.rss import compile_rss
 from norite.utils.sass import compile_sass
 from norite.utils.sitemap import generate_sitemap
+from norite.utils.robots_txt import generate_robots_txt
 from norite.utils.print_helpers import print_error, print_warning
 
 
@@ -84,6 +85,7 @@ def build(config):
             compile_rss(content_tree, global_context)
 
         generate_sitemap(content_tree, global_context)
+        generate_robots_txt(content_tree, global_context)
 
         c_count = content_tree.count()
         a_count = asset_tree.count()
