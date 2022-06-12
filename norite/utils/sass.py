@@ -26,7 +26,7 @@ def compile_sass(config, output):
 
     if config['sass']['compiler'] == 'libsass':
         if not sass:
-            print_error('libSass not found')
+            print_error('Error: libsass not found, ', end='')
             print_error('install with "pip install libsass"')
         else:
             sass.compile(

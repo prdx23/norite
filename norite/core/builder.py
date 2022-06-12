@@ -87,8 +87,8 @@ def build(config):
         generate_sitemap(content_tree, global_context)
         generate_robots_txt(content_tree, global_context)
 
-        c_count = content_tree.count()
-        a_count = asset_tree.count()
+        c_count = content_tree._count()
+        a_count = asset_tree._count()
 
         print('Generating - ', end='')
         print(f'{c_count[0] + a_count[0]} Pages, ', end='')

@@ -49,6 +49,9 @@ md = Markdown(
 environment = Environment(
     loader=FileSystemLoader('source/templates'),
     autoescape=select_autoescape(),
+    extensions=[
+        'jinja2.ext.loopcontrols', 'jinja2.ext.debug', 'jinja2.ext.do',
+    ],
 )
 environment.filters['weight_sort'] = weight_sort
 environment.filters['date_sort'] = date_sort

@@ -54,9 +54,6 @@ def parse_toml_config(path):
             'filename': 'rss.xml',
         },
 
-        'extra': {
-        },
-
     }
 
     config = {}

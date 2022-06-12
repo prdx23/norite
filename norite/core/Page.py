@@ -11,8 +11,9 @@ from norite.utils.print_helpers import print_warning
 class Base:
 
     _reserved = [
-        'is_page', 'is_asset',
+        'is_page', 'is_asset', 'is_leaf',
         'permalink',
+        'content', 'raw_content',
         'path', 'parent', 'root',
         'sections', 'assets',
     ]
@@ -32,6 +33,9 @@ class Base:
     def _set_root(self, *args, **kwargs):
         raise NotImplementedError
 
+    def _count(self, *args, **kwargs):
+        raise NotImplementedError
+
     def __repr__(self):
         return f'{self.__class__.__name__}<{self.path}>'
 
@@ -40,13 +44,14 @@ class Page(Base):
 
     def __init__(self, path, root, output, children=[]):
 
-        self.is_page = True
-        self.is_asset = False
-
         self.path = path
         self.parent = None
         self.sections = [x for x in children if x and x.is_page]
         self.assets = [x for x in children if x and x.is_asset]
+
+        self.is_page = True
+        self.is_asset = False
+        self.is_leaf = False if len(self.sections) > 0 else True
 
         if self.path == root:
             self._set_root(self)
@@ -71,11 +76,6 @@ class Page(Base):
 
         self._build_dir = output / relative_path
         self._build_path = self._build_dir / Path('index.html')
-
-    def _set_root(self, page):
-        self.root = page
-        [x._set_root(page) for x in self.sections]
-        [x._set_root(page) for x in self.assets]
 
     def _parse(self):
 
@@ -105,7 +105,7 @@ class Page(Base):
                 setattr(self, key, value)
             else:
                 print_warning(
-                    f'Warning: Ignoring key "{key}" '
+                    f'Warning: Ignoring reserved variable name "{key}" '
                     f'in frontmatter of "{self.path}"'
                 )
 
@@ -123,6 +123,8 @@ class Page(Base):
 
         md_template = environment.from_string(self._raw_content)
         templated_content = md_template.render(page=self, **global_context)
+
+        self.raw_content = templated_content
         self.content = md.reset().convert(templated_content)
 
         template = environment.get_template(self.template)
@@ -133,8 +135,13 @@ class Page(Base):
         [x._render() for x in self.sections]
         [x._render() for x in self.assets]
 
-    def count(self):
-        inner = [x.count() for x in self.sections]
+    def _set_root(self, page):
+        self.root = page
+        [x._set_root(page) for x in self.sections]
+        [x._set_root(page) for x in self.assets]
+
+    def _count(self):
+        inner = [x._count() for x in self.sections]
 
         asset_count = sum(1 for x in self.assets)
         asset_count += sum(x[1] for x in inner)
