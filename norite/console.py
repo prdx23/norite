@@ -7,12 +7,12 @@ from norite.core.toml import parse_toml_config
 
 from norite.utils.init import init
 from norite.utils.server import serve
-from norite.utils.print_helpers import print_success
+from norite.utils.print_helpers import print_success, print_error
 
 
 parser = argparse.ArgumentParser(
     prog='norite',
-    description='A static site generator'
+    description='A static website generator'
 )
 subparsers = parser.add_subparsers(
     title='Commands',
@@ -23,12 +23,12 @@ subparsers = parser.add_subparsers(
 
 init_parser = subparsers.add_parser(
     'init',
-    help='Initialize a new project in current directory'
+    help='Initialize a new project in the current directory'
 )
 
 build_parser = subparsers.add_parser(
     'build',
-    help='Delete output directory and rebuild the site'
+    help='Delete the output directory and rebuild the site'
 )
 
 serve_parser = subparsers.add_parser(
@@ -58,7 +58,7 @@ def console():
         return
 
     if not Path('config.toml').exists():
-        print('config.toml not found')
+        print_error('Error: config.toml not found')
         return
 
     config = parse_toml_config(Path('config.toml'))

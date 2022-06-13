@@ -31,7 +31,7 @@ class Server(Thread):
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
-                print("\nKeyboard interrupt received, exiting.")
+                print("\nKeyboard interrupt received, exiting...")
 
 
 class Watcher:

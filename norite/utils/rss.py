@@ -10,7 +10,7 @@ def compile_rss(content_tree, global_context):
     rss_template_file = Path('source/templates') / filename
 
     if not rss_template_file.exists():
-        print_error(f'\nrss template "{rss_template_file}" not found\n')
+        print_error(f'\nError: rss template "{rss_template_file}" not found\n')
         return
 
     rss_template = environment.get_template(rss_template_file.name)
