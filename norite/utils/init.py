@@ -22,6 +22,19 @@ default_index_html = '''
 
         {% block head %}{% endblock %}
 
+        <style>
+            html {
+                width: 100%;
+                height: 100%;
+            }
+            body {
+                margin: 5vh 10vw;
+                font-family: sans-serif;
+            }
+        </style>
+
+        <style> {{ get_syntax_css('default') }} </style>
+
     </head>
 
     <body>
