@@ -6,21 +6,21 @@ Norite's main goal is to act as an easy to use rendering engine for people who l
 
 Implemented Features:
 - Markdown to HTML render
-- Support for using toml or json files in place of markdown
+- Support for using toml or json files instead of markdown
 - Jinja2 based HTML templates
 - Support for embedding Jinja2 templates in markdown
 - Support for nested folders in website content
 - Support for custom templates for any subsection of the content folder
 - Support for co-locating assets with content
-- Syntax highlighting in code blocks
+- Syntax highlighting
 - Sass compilation (via libsass or dart-sass)
-- In-built dev server with auto reload on file changes
+- Built-in development server with auto reload on file changes
 - Support for building custom RSS/Atom feeds and robots.txt using templates
 - Automatic sitemap.xml generation
 
-Todo:
+Todo (Features I am working on or plan to implement):
 - Tests
-- Nicer error messages
+- Python based Plugins
 - Live reload in Javascript
 - Incremental builds
 - Link checker
@@ -28,7 +28,7 @@ Todo:
 
 
 ## Installation
-norite is in alpha, but if you like what you see and want to give it a try, you can install using:
+Norite is in alpha but the features listed above are fully functional. If you like what you see and want to give it a try, you can install using:
 ```shell
 pip install norite
 ```
@@ -45,7 +45,7 @@ Checkout the documentation for norite here: [documentation](https://github.com/p
 
 
 ## Inspiration
-Norite takes inspiration from [Zola's](https://www.getzola.org/) features and its way of organizing content, borrows a few concepts from [Hugo](https://gohugo.io), and references  [Pelican](https://blog.getpelican.com/)'s and [Mkdocs](https://www.mkdocs.org/)'s internal implementations for a few things. I would happily recommend using any of these excellent SSGs!
+Norite is influenced by [Zola's](https://www.getzola.org/) features and its way of organizing content, borrows a few concepts from [Hugo](https://gohugo.io), and takes inspiration from [Pelican](https://blog.getpelican.com/)'s and [Mkdocs](https://www.mkdocs.org/)'s internal implementations for a few things. I would happily recommend using any of these excellent SSGs!
 
 
 ## License
