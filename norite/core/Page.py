@@ -15,26 +15,53 @@ class Base:
         'permalink',
         'content', 'raw_content',
         'path', 'parent', 'root',
-        'sections', 'assets',
+        'pages', 'assets',
     ]
 
-    _base_names = [
+    _index_names = [
         'index.md',
         'index.toml',
         'index.json',
     ]
 
-    def _parse(self, *args, **kwargs):
-        raise NotImplementedError
+    def _parse(self):
+        if self.is_page:
+            self._parse_page()
 
-    def _render(self, *args, **kwargs):
-        raise NotImplementedError
+        if self.is_asset:
+            self._parse_asset()
 
-    def _set_root(self, *args, **kwargs):
-        raise NotImplementedError
+        [x._parse() for x in self.pages]
+        [x._parse() for x in self.assets]
 
-    def _count(self, *args, **kwargs):
-        raise NotImplementedError
+    def _render(self):
+        if self.is_page:
+            self._render_page()
+
+        if self.is_asset:
+            self._render_asset()
+
+        [x._render() for x in self.pages]
+        [x._render() for x in self.assets]
+
+    def _set_root(self, page):
+        self.root = page
+        [x._set_root(page) for x in self.pages]
+        [x._set_root(page) for x in self.assets]
+
+    def _count(self):
+        counts = [x._count() for x in self.pages]
+        counts += [x._count() for x in self.assets]
+        pages_count = sum(x[0] for x in counts)
+        assets_count = sum(x[1] for x in counts)
+
+        if not self.path.is_dir():
+            if self.is_page:
+                pages_count += 1
+            if self.is_asset:
+                assets_count += 1
+
+        return pages_count, assets_count
 
     def __repr__(self):
         return f'{self.__class__.__name__}<{self.path}>'
@@ -46,24 +73,24 @@ class Page(Base):
 
         self.path = path
         self.parent = None
-        self.sections = [x for x in children if x and x.is_page]
+        self.pages = [x for x in children if x and x.is_page]
         self.assets = [x for x in children if x and x.is_asset]
 
         self.is_page = True
         self.is_asset = False
-        self.is_leaf = False if len(self.sections) > 0 else True
+        self.is_leaf = False if len(self.pages) > 0 else True
 
         if self.path == root:
             self._set_root(self)
-        elif self.path.parent == root and self.path.name in self._base_names:
+        elif self.path.parent == root and self.path.name in self._index_names:
             self._set_root(self)
 
-        for x in self.sections:
+        for x in self.pages:
             x.parent = self
 
         relative_path = path.relative_to(root).parent
 
-        if path.is_file() and path.name not in self._base_names:
+        if path.is_file() and path.name not in self._index_names:
             relative_path = relative_path / self.path.stem
 
         if path.is_file():
@@ -77,13 +104,11 @@ class Page(Base):
         self._build_dir = output / relative_path
         self._build_path = self._build_dir / Path('index.html')
 
-    def _parse(self):
-
+    def _parse_page(self):
         self.template = 'index.html'
         self.child_template = 'index.html'
 
         if self.path.is_dir():
-            [x._parse() for x in self.sections]
             return
 
         with self.path.open('r') as f:
@@ -111,12 +136,8 @@ class Page(Base):
 
         self._raw_content = ''.join(lines)
 
-        [x._parse() for x in self.sections]
-
-    def _render(self):
+    def _render_page(self):
         if self.path.is_dir():
-            [x._render() for x in self.sections]
-            [x._render() for x in self.assets]
             return
 
         self._build_dir.mkdir(parents=True, exist_ok=True)
@@ -132,42 +153,32 @@ class Page(Base):
         with self._build_path.open('w') as f:
             f.write(rendered)
 
-        [x._render() for x in self.sections]
-        [x._render() for x in self.assets]
-
-    def _set_root(self, page):
-        self.root = page
-        [x._set_root(page) for x in self.sections]
-        [x._set_root(page) for x in self.assets]
-
-    def _count(self):
-        inner = [x._count() for x in self.sections]
-
-        asset_count = sum(1 for x in self.assets)
-        asset_count += sum(x[1] for x in inner)
-
-        page_count = sum(x[0] for x in inner)
-        if not self.path.is_dir():
-            page_count += 1
-
-        return page_count, asset_count
-
 
 class Asset(Base):
 
-    def __init__(self, path, root, output):
+    def __init__(self, path, root, output, children=[]):
         self.is_page = False
         self.is_asset = True
         self.path = path
 
+        self.pages = []
+        self.assets = [x for x in children if x and x.is_asset]
+
         relative_path = path.relative_to(root).parent
-        self.permalink = f'/{str(relative_path / path.name)}'
+
+        if self.path.is_file():
+            self.permalink = f'/{str(relative_path / path.name)}'
+        else:
+            self.permalink = ''
+
         self._build_dir = output / relative_path
         self._build_path = self._build_dir / self.path.name
 
-    def _set_root(self, page):
-        self.root = page
+    def _parse_asset(self):
+        pass
 
-    def _render(self):
+    def _render_asset(self):
+        if self.path.is_dir():
+            return
         self._build_dir.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.path, self._build_path)

@@ -18,18 +18,21 @@ def parsetree(path, root, output):
         if path.suffix == '.md' and path.stem != 'index':
             return Page(path, root, output)
 
-        if path.suffix != '.md' and path.name not in Page._base_names:
+        if path.suffix != '.md' and path.name not in Page._index_names:
             return Asset(path, root, output)
 
     if path.is_dir():
         children = list(path.iterdir())
         inner = [parsetree(x, root, output) for x in children]
 
-        index = [x for x in children if x.name in Page._base_names]
+        index = [x for x in children if x.name in Page._index_names]
         if index:
             return Page(index[0], root, output, inner)
 
-        return Page(path, root, output, inner)
+        if any(x.is_page for x in inner if x):
+            return Page(path, root, output, inner)
+        else:
+            return Asset(path, root, output, inner)
 
 
 def build(config):

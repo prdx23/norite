@@ -38,9 +38,9 @@ def get_syntax_css(style='default'):
 
 def all_pages(page):
     pages = []
-    for section in page.sections:
-        pages.append(section)
-        pages += all_pages(section)
+    for inner in page.pages:
+        pages.append(inner)
+        pages += all_pages(inner)
     return pages
 
 
