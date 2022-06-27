@@ -1,11 +1,19 @@
 import setuptools
 
+
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
+
+with open('norite/version.py') as fp:
+    temp = {}
+    exec(fp.read(), temp)
+    version = temp['__version__']
+
+
 setuptools.setup(
     name='norite',
-    version='0.1.0',
+    version=version,
     author='Arsh',
     author_email='hi@prdx.me',
     description='A simple static website generator powered by Jinja2',

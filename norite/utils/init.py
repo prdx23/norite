@@ -1,4 +1,5 @@
 import os
+from norite import __version__
 
 default_index_md = '''
 ---
@@ -17,6 +18,7 @@ default_index_html = '''
 
     <head>
         <meta charset="utf-8">
+        <meta name="generator" content="Norite v__version__" />
 
         <title>{% block title %} {{ page.title }} {% endblock %}</title>
 
@@ -50,7 +52,7 @@ default_index_html = '''
     </body>
 
 </html>
-'''
+'''.replace('__version__', __version__)
 
 
 def init():

@@ -2,6 +2,7 @@ import time
 import argparse
 from pathlib import Path
 
+from norite import __version__
 from norite.core.builder import build
 from norite.core.toml import parse_toml_config
 
@@ -14,6 +15,13 @@ parser = argparse.ArgumentParser(
     prog='norite',
     description='A static website generator'
 )
+parser.add_argument(
+    '-v', '--version',
+    help='print version number',
+    action='version',
+    version=__version__,
+)
+
 subparsers = parser.add_subparsers(
     title='Commands',
     dest='command',
