@@ -86,7 +86,6 @@ def serve(config, host='localhost', port=1234):
 
     output = Path(config['output'])
     content = Path(config['content'])
-    static = Path(config['static'])
     source = Path('source')
 
     debounce = 0.4
@@ -95,7 +94,6 @@ def serve(config, host='localhost', port=1234):
 
     watchers = [
         Watcher(content, WatchHandler('content', config, debounce=debounce)),
-        Watcher(static, WatchHandler('static', config, debounce=debounce)),
         Watcher(source, WatchHandler('source', config, debounce=debounce)),
     ]
     [w.run() for w in watchers]

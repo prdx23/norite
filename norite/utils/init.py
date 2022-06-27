@@ -57,9 +57,6 @@ def init():
     if not os.path.exists('content'):
         os.makedirs('content')
 
-    if not os.path.exists('static'):
-        os.makedirs('static')
-
     if not os.path.exists('source/templates'):
         os.makedirs('source/templates')
 

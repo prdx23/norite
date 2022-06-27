@@ -40,7 +40,6 @@ def parse_toml_config(path):
 
         'content': 'content',
         'output': 'dist',
-        'static': 'static',
 
         'baseurl': 'https://example.com',
 

@@ -38,7 +38,6 @@ def parsetree(path, root, output):
 def build(config):
     content = Path(config['content'])
     output = Path(config['output'])
-    static = Path(config['static'])
     templates = Path('source/templates')
 
     # content path validation
@@ -47,12 +46,7 @@ def build(config):
         return False
 
     if not any(os.scandir(content)):
-        print_warning('Warning: content directory is empty')
-
-    # static path validation
-    if not static.exists():
-        print_error(f'Error: static directory "./{static}" not found')
-        return False
+        print_warning('Warning: content directory is empty!')
 
     # templates path validation
     if not templates.exists():
@@ -60,7 +54,7 @@ def build(config):
         return False
 
     if not any(os.scandir(templates)):
-        print_warning('Warning: templates directory is empty')
+        print_warning('Warning: templates directory is empty!')
 
     # output path cleanup
     if output.exists():
@@ -70,32 +64,24 @@ def build(config):
         output.mkdir()
 
     try:
-        asset_tree = parsetree(static, static, output)
-        asset_tree._parse()
-        asset_tree._render()
+        global_context['config'] = config
+
+        tree = parsetree(content, content, output)
+        tree._parse()
+        tree._render()
 
         if config['sass']['enable']:
             compile_sass(config, output)
 
-        global_context['static'] = asset_tree
-        global_context['config'] = config
-
-        content_tree = parsetree(content, content, output)
-        content_tree._parse()
-        content_tree._render()
-
         if config['rss']['enable']:
-            compile_rss(content_tree, global_context)
+            compile_rss(tree, global_context)
 
-        generate_sitemap(content_tree, global_context)
-        generate_robots_txt(content_tree, global_context)
+        generate_sitemap(tree, global_context)
+        generate_robots_txt(tree, global_context)
 
-        c_count = content_tree._count()
-        a_count = asset_tree._count()
-
+        count = tree._count()
         print('Generating - ', end='')
-        print(f'{c_count[0] + a_count[0]} Pages, ', end='')
-        print(f'{c_count[1] + a_count[1]} Assets')
+        print(f'{count[0]} Pages, {count[1]} Assets')
         return True
 
     except Exception as e:

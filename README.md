@@ -11,7 +11,7 @@ Implemented Features:
 - Support for embedding Jinja2 templates in markdown
 - Support for nested folders in website content
 - Support for custom templates for any subsection of the content folder
-- Support for co-locating assets with content
+- Co-located assets with content
 - Syntax highlighting
 - Sass compilation (via libsass or dart-sass)
 - Built-in development server with auto reload on file changes
