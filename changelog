@@ -1,6 +1,9 @@
 
 v0.2.1
 - bugfix: config.toml will not ignore custom entries
+- added feature to mark files/folders as drafts
+- added --drafts cli argument
+
 
 v0.2.0
 - bugfixes

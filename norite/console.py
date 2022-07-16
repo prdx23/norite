@@ -38,6 +38,11 @@ build_parser = subparsers.add_parser(
     'build',
     help='Delete the output directory and rebuild the site'
 )
+build_parser.add_argument(
+    '--drafts',
+    help='Include files/folders marked as drafts in output',
+    action='store_true',
+)
 
 serve_parser = subparsers.add_parser(
     'serve',
@@ -54,6 +59,11 @@ serve_parser.add_argument(
     help='Specify alternate host [default: localhost]',
     type=str,
     default='localhost',
+)
+serve_parser.add_argument(
+    '--drafts',
+    help='Include files/folders marked as drafts in output',
+    action='store_true',
 )
 
 
@@ -73,9 +83,9 @@ def console():
 
     if args.command == 'build':
         start = time.time()
-        if build(config):
+        if build(config, args.drafts):
             end = round((time.time() - start) * 1000, 2)
             print_success(f'\n--- Site built! [ {end}ms ] ---')
 
     if args.command == 'serve':
-        serve(config, args.bind, args.port)
+        serve(config, args.bind, args.port, args.drafts)

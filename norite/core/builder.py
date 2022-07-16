@@ -12,7 +12,11 @@ from norite.utils.robots_txt import generate_robots_txt
 from norite.utils.print_helpers import print_error, print_warning
 
 
-def parsetree(path, root, output):
+def parsetree(path, root, output, incl_drafts):
+
+    if incl_drafts is False and path.stem[0] == '_':
+        print_warning(f'* Marked as draft: {path}')
+        return None
 
     if path.is_file():
         if path.suffix == '.md' and path.stem != 'index':
@@ -23,7 +27,7 @@ def parsetree(path, root, output):
 
     if path.is_dir():
         children = list(path.iterdir())
-        inner = [parsetree(x, root, output) for x in children]
+        inner = [parsetree(x, root, output, incl_drafts) for x in children]
 
         index = [x for x in children if x.name in Page._index_names]
         if index:
@@ -35,7 +39,7 @@ def parsetree(path, root, output):
             return Asset(path, root, output, inner)
 
 
-def build(config):
+def build(config, incl_drafts=False):
     content = Path(config['content'])
     output = Path(config['output'])
     templates = Path('source/templates')
@@ -66,7 +70,10 @@ def build(config):
     try:
         global_context['config'] = config
 
-        tree = parsetree(content, content, output)
+        if incl_drafts:
+            print_warning('Warning: Including drafts in output!')
+
+        tree = parsetree(content, content, output, incl_drafts)
         tree._parse()
         tree._render()
 
@@ -80,7 +87,7 @@ def build(config):
         generate_robots_txt(tree, global_context)
 
         count = tree._count()
-        print('Generating - ', end='')
+        print('\nGenerating - ', end='')
         print(f'{count[0]} Pages, {count[1]} Assets')
         return True
 

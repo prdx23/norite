@@ -80,9 +80,9 @@ class WatchHandler(FileSystemEventHandler):
                 print_success(f'\n--- Site rebuilt! [ {end}ms ] ---')
 
 
-def serve(config, host='localhost', port=1234):
+def serve(config, host='localhost', port=1234, incl_drafts=False):
     config['output'] = '__live_server'
-    build(config)
+    build(config, incl_drafts)
 
     output = Path(config['output'])
     content = Path(config['content'])
