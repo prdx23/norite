@@ -33,7 +33,7 @@ def parse_toml(lines):
 
 def parse_toml_config(path):
 
-    with open('config.toml') as f:
+    with open(path) as f:
         config = toml.load(f)
 
     default_config = {

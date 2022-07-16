@@ -21,6 +21,14 @@ parser.add_argument(
     action='version',
     version=__version__,
 )
+parser.add_argument(
+    '-f',
+    help='use a custom .toml file for config [default: config.toml]',
+    type=str,
+    default='config.toml',
+    metavar='FILE',
+    dest='config_filename',
+)
 
 subparsers = parser.add_subparsers(
     title='Commands',
@@ -79,7 +87,7 @@ def console():
         print_error('Error: config.toml not found')
         return
 
-    config = parse_toml_config(Path('config.toml'))
+    config = parse_toml_config(Path(args.config_filename))
 
     if args.command == 'build':
         start = time.time()

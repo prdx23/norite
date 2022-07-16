@@ -17,6 +17,7 @@ Implemented Features:
 - Built-in development server with auto reload on file changes
 - Support for building custom RSS/Atom feeds and robots.txt using templates
 - Automatic sitemap.xml generation
+- Support for marking files/folders as drafts
 
 Todo (Features I am working on or plan to implement):
 - Tests
@@ -28,7 +29,7 @@ Todo (Features I am working on or plan to implement):
 
 
 ## Installation
-Norite is in alpha but the features listed above are fully functional. If you like what you see and want to give it a try, you can install using:
+Norite is in beta but the features listed above are fully functional. If you like what you see and want to give it a try, you can install using:
 ```shell
 pip install norite
 ```
