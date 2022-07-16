@@ -34,7 +34,7 @@ def parse_toml(lines):
 def parse_toml_config(path):
 
     with open('config.toml') as f:
-        toml_config = toml.load(f)
+        config = toml.load(f)
 
     default_config = {
 
@@ -55,13 +55,14 @@ def parse_toml_config(path):
 
     }
 
-    config = {}
-    for k, v in default_config.items():
-        if isinstance(v, collections.abc.Mapping):
-            v.update(toml_config.get(k, {}))
-            config[k] = v
-        else:
-            config[k] = toml_config.get(k, v)
+    for key in default_config.keys():
+        config[key] = config.get(key, default_config[key])
+
+        if isinstance(config[key], collections.abc.Mapping):
+            for inner_key in default_config[key].keys():
+                config[key][inner_key] = config[key].get(
+                    inner_key, default_config[key][inner_key]
+                )
 
     if config['sass']['compiler'] not in ['libsass', 'dartsass']:
         print_warning(
