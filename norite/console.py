@@ -13,7 +13,8 @@ from norite.utils.print_helpers import print_success, print_error
 
 parser = argparse.ArgumentParser(
     prog='norite',
-    description='A static website generator'
+    description='A static website generator',
+    allow_abbrev=False,
 )
 parser.add_argument(
     '-v', '--version',
@@ -23,9 +24,9 @@ parser.add_argument(
 )
 parser.add_argument(
     '-f',
-    help='use a custom .toml file for config [default: config.toml]',
+    help='use a custom .toml file for config [default: norite.toml]',
     type=str,
-    default='config.toml',
+    default='norite.toml',
     metavar='FILE',
     dest='config_filename',
 )
@@ -39,7 +40,8 @@ subparsers = parser.add_subparsers(
 
 init_parser = subparsers.add_parser(
     'init',
-    help='Initialize a new project in the current directory'
+    help='Initialize a new project in the current directory',
+    allow_abbrev=False,
 )
 
 build_parser = subparsers.add_parser(
@@ -54,7 +56,8 @@ build_parser.add_argument(
 
 serve_parser = subparsers.add_parser(
     'serve',
-    help='Start a dev server, reload on changes automatically'
+    help='Start a dev server, reload on changes automatically',
+    allow_abbrev=False,
 )
 serve_parser.add_argument(
     '-p', '--port',
@@ -83,8 +86,8 @@ def console():
         print_success('\nNew project initialized!')
         return
 
-    if not Path('config.toml').exists():
-        print_error('Error: config.toml not found')
+    if not Path(args.config_filename).exists():
+        print_error(f'Error: {args.config_filename} not found')
         return
 
     config = parse_toml_config(Path(args.config_filename))
@@ -96,4 +99,4 @@ def console():
             print_success(f'\n--- Site built! [ {end}ms ] ---')
 
     if args.command == 'serve':
-        serve(config, args.bind, args.port, args.drafts)
+        serve(config, args.drafts, args.bind, args.port)

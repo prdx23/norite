@@ -56,11 +56,14 @@ class Watcher:
 
 class WatchHandler(FileSystemEventHandler):
 
-    def __init__(self, name, config, *args, debounce=0.4, **kwargs):
+    def __init__(
+        self, name, config, *args, incl_drafts, debounce=0.4, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.name = name
         self.config = config
         self.debounce = debounce
+        self.incl_drafts = incl_drafts
         self.last_timestamp = time.time()
 
     def on_any_event(self, event):
@@ -75,12 +78,12 @@ class WatchHandler(FileSystemEventHandler):
             print(f'change detected in: {event.src_path}')
             print('rebuilding...')
 
-            if build(self.config):
+            if build(self.config, self.incl_drafts):
                 end = round((time.time() - start) * 1000, 2)
                 print_success(f'\n--- Site rebuilt! [ {end}ms ] ---')
 
 
-def serve(config, host='localhost', port=1234, incl_drafts=False):
+def serve(config, incl_drafts, host='localhost', port=1234):
     config['output'] = '__live_server'
     build(config, incl_drafts)
 
@@ -93,8 +96,18 @@ def serve(config, host='localhost', port=1234, incl_drafts=False):
         debounce = 1
 
     watchers = [
-        Watcher(content, WatchHandler('content', config, debounce=debounce)),
-        Watcher(source, WatchHandler('source', config, debounce=debounce)),
+        Watcher(
+            content,
+            WatchHandler(
+                'content', config, incl_drafts=incl_drafts, debounce=debounce
+            )
+        ),
+        Watcher(
+            source,
+            WatchHandler(
+                'source', config, incl_drafts=incl_drafts, debounce=debounce
+            )
+        ),
     ]
     [w.run() for w in watchers]
 

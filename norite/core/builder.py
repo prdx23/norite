@@ -39,7 +39,7 @@ def parsetree(path, root, output, incl_drafts):
             return Asset(path, root, output, inner)
 
 
-def build(config, incl_drafts=False):
+def build(config, incl_drafts):
     content = Path(config['content'])
     output = Path(config['output'])
     templates = Path('source/templates')

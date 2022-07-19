@@ -1,5 +1,11 @@
 
 v0.2.1
+- bugfix: removed hard-coded config filename
+- bugfix: drafts status is passed through on auto-reload
+- renamed default config from config.toml to norite.toml
+
+
+v0.2.1
 - bugfix: config.toml will not ignore custom entries
 - added feature to mark files/folders as drafts
 - added --drafts cli argument
