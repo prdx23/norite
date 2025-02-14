@@ -1,0 +1,24 @@
+{
+    "name": "norite",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "bin": "dist/norite.js",
+    "files": ["dist"],
+    "main": "./dist/norite.umd.cjs",
+    "module": "./dist/norite.js",
+    "exports": {
+        ".": {
+            "import": "./dist/norite.js",
+            "require": "./dist/norite.umd.cjs"
+        }
+    },
+    "scripts": {
+        "dev": "fd --type file | entr -ns 'vite build && chmod +x dist/norite.js && echo \n\n'",
+        "build": "tsc && vite build && chmod +x dist/norite.js"
+    },
+    "devDependencies": {
+        "typescript": "~5.7.2",
+        "vite": "^6.1.0"
+    }
+}
