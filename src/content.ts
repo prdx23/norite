@@ -1,7 +1,8 @@
 
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
-// import { Config } from './config'
+import * as ps from 'node:process'
+import { Config } from './config'
 
 
 
@@ -47,13 +48,49 @@ class Node {
         this.children.forEach(x => x.printTree(indent + '    '))
     }
 
+
+    async build(config: Config, opts: { link: boolean } = { link: true }) {
+
+        if (this.type == 'dir') {
+            const tasks = this.children.map(x => x.build(config, opts))
+            await Promise.all(tasks)
+            return
+        }
+
+        const parent = np.join(config.outputDir, np.dirname(this.path))
+        await fs.access(parent).catch(async () => {
+            await fs.mkdir(parent, { recursive: true })
+        })
+
+        if (this.type == 'asset') {
+            if (opts.link) {
+                await fs.symlink(
+                    np.join(ps.cwd(), config.contentDir, this.path),
+                    np.join(config.outputDir, this.path)
+                )
+            } else {
+                await fs.cp(
+                    np.join(config.contentDir, this.path),
+                    np.join(config.outputDir, this.path)
+                )
+            }
+        }
+
+        if (this.type == 'page') {
+            await fs.cp(
+                np.join(config.contentDir, this.path),
+                np.join(config.outputDir, this.path)
+            )
+        }
+
+    }
+
 }
 
 
 export async function loadContentTree(fpath: string, route: string): Promise<Node> {
 
     let lstat
-
     try {
         await fs.access(fpath)
         lstat = await fs.lstat(fpath)
