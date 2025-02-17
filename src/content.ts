@@ -6,31 +6,31 @@ import { Config } from './config'
 
 
 
-type NodeType = 'page' | 'asset' | 'dir'
+type ContentNodeType = 'page' | 'asset' | 'dir'
 
-class Node {
+export class ContentNode {
 
-    type: NodeType
+    type: ContentNodeType
     path: string
     slug: string
-    children: Node[] = []
+    children: ContentNode[] = []
 
-    static indexNames: string[] = ['index.json', 'index.toml']
+    static indexNames: string[] = ['index.json']
     static pageExts: string[] = ['.md']
     static isPage(name: string) {
         return (
-            Node.indexNames.includes(np.basename(name)) ||
-            Node.pageExts.includes(np.extname(name))
+            ContentNode.indexNames.includes(np.basename(name)) ||
+            ContentNode.pageExts.includes(np.extname(name))
         )
     }
 
 
-    constructor(path: string, type: NodeType) {
+    constructor(path: string, type: ContentNodeType) {
         this.path = path
         this.type = type
         this.slug = path
 
-        if (Node.isPage(path)) {
+        if (ContentNode.isPage(path)) {
             const filename = np.basename(path, np.extname(path))
             this.slug = np.join(np.dirname(path), `${filename}.html`)
         }
@@ -88,7 +88,7 @@ class Node {
 }
 
 
-export async function loadContentTree(fpath: string, route: string): Promise<Node> {
+export async function loadContentTree(fpath: string, route: string): Promise<ContentNode> {
 
     let lstat
     try {
@@ -101,7 +101,7 @@ export async function loadContentTree(fpath: string, route: string): Promise<Nod
     if (lstat.isDirectory()) {
 
         const dir = await fs.opendir(fpath)
-        const node = new Node(route, 'dir')
+        const node = new ContentNode(route, 'dir')
 
         for await (const file of dir) {
             const cpath = np.join(fpath, file.name)
@@ -112,10 +112,10 @@ export async function loadContentTree(fpath: string, route: string): Promise<Nod
         return node
     }
 
-    if (lstat.isFile() && Node.isPage(fpath)) {
-        return new Node(route, 'page')
+    if (lstat.isFile() && ContentNode.isPage(fpath)) {
+        return new ContentNode(route, 'page')
     }
 
-    return new Node(route, 'asset')
+    return new ContentNode(route, 'asset')
 
 }

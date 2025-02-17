@@ -11,7 +11,7 @@ export type Config = {
 }
 
 
-export const config: Config = {
+export const defaultConfig: Config = {
 
     contentDir: 'content',
     templatesDir: 'src/templates',
