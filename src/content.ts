@@ -3,6 +3,9 @@ import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
 import * as ps from 'node:process'
 import { Config } from './config'
+import { type Processor } from './markdown'
+import { VFile } from 'vfile'
+import { reporter } from 'vfile-reporter'
 
 
 
@@ -12,7 +15,10 @@ export class ContentNode {
 
     type: ContentNodeType
     path: string
+    name: string
     slug: string
+    content: string = ''
+    metadata: Record<string, any> = {}
     children: ContentNode[] = []
 
     static indexNames: string[] = ['index.json']
@@ -27,6 +33,7 @@ export class ContentNode {
 
     constructor(path: string, type: ContentNodeType) {
         this.path = path
+        this.name = np.basename(path)
         this.type = type
         this.slug = path
 
@@ -49,7 +56,7 @@ export class ContentNode {
     }
 
 
-    async build(config: Config, opts: { link: boolean } = { link: true }) {
+    async build(config: Config, opts: { link: boolean }) {
 
         if (this.type == 'dir') {
             const tasks = this.children.map(x => x.build(config, opts))
@@ -77,12 +84,44 @@ export class ContentNode {
         }
 
         if (this.type == 'page') {
-            await fs.cp(
-                np.join(config.contentDir, this.path),
-                np.join(config.outputDir, this.path)
+            await fs.writeFile(
+                np.join(config.outputDir, this.slug),
+                this.content
             )
         }
 
+    }
+
+
+    async transform(processor: Processor, config: Config) {
+
+        if (this.type == 'asset') { return }
+
+        if (this.type == 'dir') {
+            const tasks = this.children.map(x => x.transform(processor, config))
+            await Promise.all(tasks)
+            return
+        }
+
+        const text = await fs.readFile(
+            np.join(config.contentDir, this.path), {encoding: 'utf8'}
+        )
+
+        if (this.name == 'index.json') {
+            this.metadata = JSON.parse(text)
+            return
+        }
+
+        if (np.extname(this.name) == '.md') {
+            const file = new VFile({ path: this.path, value: text })
+            const result = await processor.process(file)
+            this.metadata = result.data.matter ?? {}
+            this.content = String(result)
+
+            const report = reporter(file, { silent: true })
+            if (report) { console.error(report) }
+            return
+        }
     }
 
 }

@@ -2,8 +2,9 @@
 
 import * as fs from 'node:fs/promises'
 
-import { Config, defaultConfig } from './config';
-import { ContentNode, loadContentTree } from './content';
+import { type Config, defaultConfig } from './config';
+import { type ContentNode, loadContentTree } from './content';
+import { type Processor, createProcessor } from './markdown';
 
 
 
@@ -11,19 +12,24 @@ export class Engine {
 
     config: Config
     root: ContentNode
+    processor: Processor
 
-    constructor(root: ContentNode, config: Config) {
+    constructor(root: ContentNode, config: Config, processor: Processor) {
         this.root = root
         this.config = config
+        this.processor = processor
     }
 
     static async new(config: Config = defaultConfig) {
         const root = await loadContentTree(config.contentDir, '')
-        root.printTree()
-        return new Engine(root, config)
+        // root.printTree()
+
+        const processor = createProcessor()
+
+        return new Engine(root, config, processor)
     }
 
-    async build() {
+    async build(opts: { link: boolean } = { link: true }) {
         try {
             await fs.access(this.config.outputDir)
             await fs.rm(this.config.outputDir, { recursive: true })
@@ -32,9 +38,11 @@ export class Engine {
         }
 
         await fs.mkdir(this.config.outputDir, { recursive: true })
-        await this.root.build(this.config)
+        await this.root.build(this.config, opts)
     }
 
-
+    async transform() {
+        await this.root.transform(this.processor, this.config)
+    }
 
 }
