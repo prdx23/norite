@@ -7,13 +7,19 @@ async function main() {
 
     const engine = await Engine.new()
 
-    console.time('transform: ')
-    await engine.transform()
-    console.timeEnd('transform: ')
+    console.time('parse templates')
+    await engine.parseTemplates()
+    console.timeEnd('parse templates')
 
-    console.time('build: ')
+    console.time('transform')
+    await engine.transform()
+    console.timeEnd('transform')
+
+    console.time('build')
     await engine.build()
-    console.timeEnd('build: ')
+    console.timeEnd('build')
+
+    engine.dispose()
 }
 
 

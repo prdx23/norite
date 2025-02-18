@@ -7,6 +7,13 @@
     "files": [
         "dist"
     ],
+    "types": [
+        "dist/jsx-runtime.d.js"
+    ],
+    "exports": {
+        "./jsx-runtime": "./dist/jsx-runtime.js",
+        "./jsx-runtime-dev": "./dist/jsx-runtime.js"
+    },
     "scripts": {
         "dev": "tsup --watch",
         "build": "tsc && tsup"
@@ -17,6 +24,9 @@
         "typescript": "~5.7.2"
     },
     "dependencies": {
+        "esbuild": "0.25.0",
+        "preact": "^10.26.2",
+        "preact-render-to-string": "^6.5.13",
         "rehype-format": "^5.0.1",
         "rehype-raw": "^7.0.0",
         "rehype-stringify": "^10.0.1",

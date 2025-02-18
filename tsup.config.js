@@ -6,10 +6,12 @@ export default defineConfig({
 
     entry: {
         norite: 'src/cli.ts',
+        'jsx-runtime': 'src/jsx-runtime.ts',
     },
 
-    format: ['esm', 'cjs'],
+    format: ['esm'],
     clean: true,
+    dts: true,
 
     watch: 'src/',
 
