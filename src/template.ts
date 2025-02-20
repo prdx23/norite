@@ -13,7 +13,7 @@ import * as esbuild from 'esbuild'
 
 export class TemplateEngine {
 
-    templates: Record<string, Module> = {}
+    templates: Record<string, Function> = {}
     cacheDir: string
     context: esbuild.BuildContext<any>
     require = Module.createRequire(import.meta.url)
@@ -24,8 +24,13 @@ export class TemplateEngine {
     }
 
     static async new(config: Config) {
+
+        fs.access(config.templatesDir)
+
         const ctx = await esbuild.context({
             entryPoints: [
+                np.join(config.templatesDir, '/**/*.js'),
+                np.join(config.templatesDir, '/**/*.ts'),
                 np.join(config.templatesDir, '/**/*.jsx'),
                 np.join(config.templatesDir, '/**/*.tsx'),
             ],
@@ -56,6 +61,7 @@ export class TemplateEngine {
             await fs.rm(this.cacheDir, { recursive: true })
         } catch { }
 
+        await fs.mkdir(this.cacheDir, { recursive: true })
         this.templates = {}
 
         await this.context.rebuild()
@@ -71,15 +77,19 @@ export class TemplateEngine {
         for await (const file of templatesDir) {
 
             const ext = np.extname(file.name)
-            if (ext != '.jsx' && ext != '.tsx') { continue }
+            if (ext != '.js') { continue }
             if (file.isDirectory()) { continue }
 
             const name = np.join(file.parentPath, file.name.replace(ext, ''))
             const path = np.join(ps.cwd(), file.parentPath, file.name)
-            this.templates[name] = this.require(path)
+            this.templates[name] = this.require(path).default
 
         }
 
+    }
+
+    load(name: string) {
+        return this.templates[np.join(this.cacheDir, name)]
     }
 
 }

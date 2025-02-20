@@ -14,8 +14,8 @@ export type Config = {
 
 export const defaultConfig: Config = {
 
-    contentDir: 'content',
-    templatesDir: 'src',
+    contentDir: 'src/content',
+    templatesDir: 'src/templates',
     outputDir: '.norite/output',
 
     _templatesCacheDir: '.norite/_templates',

@@ -62,6 +62,11 @@ export class Engine {
     }
 
 
+    async render() {
+        await this.root.render(this.templateEngine, this.config)
+    }
+
+
     dispose() {
         this.templateEngine.context.dispose()
     }

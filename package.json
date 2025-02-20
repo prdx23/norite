@@ -11,6 +11,7 @@
         "dist/jsx-runtime.d.js"
     ],
     "exports": {
+        ".": "./dist/main.js",
         "./jsx-runtime": "./dist/jsx-runtime.js",
         "./jsx-runtime-dev": "./dist/jsx-runtime.js"
     },

@@ -15,6 +15,10 @@ async function main() {
     await engine.transform()
     console.timeEnd('transform')
 
+    console.time('render')
+    await engine.render()
+    console.timeEnd('render')
+
     console.time('build')
     await engine.build()
     console.timeEnd('build')

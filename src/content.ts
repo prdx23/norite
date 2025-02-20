@@ -6,6 +6,9 @@ import { Config } from './config'
 import { type Processor } from './markdown'
 import { VFile } from 'vfile'
 import { reporter } from 'vfile-reporter'
+import { TemplateEngine } from './template'
+import { render } from 'preact-render-to-string'
+// import { render } from 'preact-render-to-string/jsx'
 
 
 
@@ -18,7 +21,8 @@ export class ContentNode {
     name: string
     slug: string
     content: string = ''
-    metadata: Record<string, any> = {}
+    rendered: string = ''
+    frontmatter: Record<string, any> = {}
     children: ContentNode[] = []
 
     static indexNames: string[] = ['index.json']
@@ -86,7 +90,7 @@ export class ContentNode {
         if (this.type == 'page') {
             await fs.writeFile(
                 np.join(config.outputDir, this.slug),
-                this.content
+                this.rendered
             )
         }
 
@@ -108,14 +112,14 @@ export class ContentNode {
         )
 
         if (this.name == 'index.json') {
-            this.metadata = JSON.parse(text)
+            this.frontmatter = JSON.parse(text)
             return
         }
 
         if (np.extname(this.name) == '.md') {
             const file = new VFile({ path: this.path, value: text })
             const result = await processor.process(file)
-            this.metadata = result.data.matter ?? {}
+            this.frontmatter = result.data.matter ?? {}
             this.content = String(result)
 
             const report = reporter(file, { silent: true })
@@ -124,18 +128,36 @@ export class ContentNode {
         }
     }
 
+
+    async render(templateEngine: TemplateEngine, config: Config) {
+
+        if (this.type == 'asset') { return }
+
+        if (this.type == 'dir') {
+            const tasks = this.children.map(x => x.render(templateEngine, config))
+            await Promise.all(tasks)
+            return
+        }
+
+        const template = templateEngine.load('Test')
+
+        this.rendered = render(template({
+            content: this.content,
+            frontmatter: this.frontmatter,
+            meta: {
+                slug: this.slug,
+                origin: '',
+            }
+        }))
+
+    }
 }
 
 
 export async function loadContentTree(fpath: string, route: string): Promise<ContentNode> {
 
-    let lstat
-    try {
-        await fs.access(fpath)
-        lstat = await fs.lstat(fpath)
-    } catch(err) {
-        throw new Error(`Error: no such file or directory: ${fpath}`)
-    }
+    await fs.access(fpath)
+    const lstat = await fs.lstat(fpath)
 
     if (lstat.isDirectory()) {
 
