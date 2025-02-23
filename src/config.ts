@@ -8,7 +8,6 @@ export type Config = {
     templatesDir: string,
     outputDir: string,
 
-    _templatesCacheDir: string,
 }
 
 
@@ -18,5 +17,4 @@ export const defaultConfig: Config = {
     templatesDir: 'src/templates',
     outputDir: '.norite/output',
 
-    _templatesCacheDir: '.norite/_templates',
 }

@@ -6,39 +6,49 @@ import * as np from 'node:path'
 import * as ps from 'node:process'
 import Module from 'node:module'
 
-import { Config } from './config'
 import * as esbuild from 'esbuild'
+import { render } from 'preact-render-to-string'
+import { Context } from './main'
+// import { render } from 'preact-render-to-string/jsx'
+
 
 
 
 export class TemplateEngine {
 
     templates: Record<string, Function> = {}
-    cacheDir: string
-    context: esbuild.BuildContext<any>
-    require = Module.createRequire(import.meta.url)
+    noDefaultImportFiles: string[] = []
 
-    constructor(ctx: esbuild.BuildContext<any>, cacheDir: string) {
-        this.context = ctx
-        this.cacheDir = cacheDir
+    _sourceDir: string
+    _cacheDir: string
+    _context: esbuild.BuildContext<any>
+    _require = Module.createRequire(import.meta.url)
+
+
+    constructor(
+        ctx: esbuild.BuildContext<any>,
+        opts: { sourceDir: string, cacheDir: string }
+    ) {
+        this._context = ctx
+        this._sourceDir = opts.sourceDir
+        this._cacheDir = opts.cacheDir
     }
 
-    static async new(config: Config) {
 
-        fs.access(config.templatesDir)
-
+    static async new(opts: { sourceDir: string, cacheDir: string }) {
         const ctx = await esbuild.context({
             entryPoints: [
-                np.join(config.templatesDir, '/**/*.js'),
-                np.join(config.templatesDir, '/**/*.ts'),
-                np.join(config.templatesDir, '/**/*.jsx'),
-                np.join(config.templatesDir, '/**/*.tsx'),
+                np.join(opts.sourceDir, '/**/*.js'),
+                np.join(opts.sourceDir, '/**/*.ts'),
+                np.join(opts.sourceDir, '/**/*.jsx'),
+                np.join(opts.sourceDir, '/**/*.tsx'),
             ],
 
             format: 'esm',
             bundle: true,
-            outbase: config.templatesDir,
-            outdir: config._templatesCacheDir,
+            outbase: opts.sourceDir,
+            outdir: opts.cacheDir,
+            metafile: true,
             logOverride: {
                 'empty-glob': 'info',
             },
@@ -50,46 +60,84 @@ export class TemplateEngine {
             jsxImportSource: 'norite',
             external: ['norite/jsx-runtime'],
         })
-
-        return new TemplateEngine(ctx, config._templatesCacheDir)
+        return new TemplateEngine(ctx, opts)
     }
 
     async parse() {
 
+        await fs.access(this._sourceDir)
+
         try {
-            await fs.access(this.cacheDir)
-            await fs.rm(this.cacheDir, { recursive: true })
+            await fs.access(this._cacheDir)
+            await fs.rm(this._cacheDir, { recursive: true })
         } catch { }
 
-        await fs.mkdir(this.cacheDir, { recursive: true })
-        this.templates = {}
+        await fs.mkdir(this._cacheDir, { recursive: true })
 
-        await this.context.rebuild()
-
-        for (const key of Object.keys(this.require.cache)) {
-            if (key.includes(this.cacheDir)) {
-                delete this.require.cache[key]
+        for (const key of Object.keys(this._require.cache)) {
+            if (key.includes(this._cacheDir)) {
+                delete this._require.cache[key]
             }
         }
 
-        const templatesDir = await fs.opendir(this.cacheDir, { recursive: true })
+        this.templates = {}
+        this.noDefaultImportFiles = []
 
-        for await (const file of templatesDir) {
+        const result = await this._context.rebuild()
 
-            const ext = np.extname(file.name)
-            if (ext != '.js') { continue }
-            if (file.isDirectory()) { continue }
+        for (const [path, obj] of Object.entries(result.metafile!.outputs)) {
+            const name = np.basename(
+                path.replace(`${this._cacheDir}/`, ''), np.extname(path)
+            )
 
-            const name = np.join(file.parentPath, file.name.replace(ext, ''))
-            const path = np.join(ps.cwd(), file.parentPath, file.name)
-            this.templates[name] = this.require(path).default
+            if (np.extname(path) != '.js') { continue }
 
+            if (!obj.exports || !obj.exports.includes('default')) {
+                this.noDefaultImportFiles.push(name)
+                continue
+            }
+
+            const fullpath = np.join(ps.cwd(), path)
+            this.templates[name] = this._require(fullpath).default
         }
 
     }
 
-    load(name: string) {
-        return this.templates[np.join(this.cacheDir, name)]
+    render(
+        templateName: string,
+        opts: { content: string, frontmatter: any, slug: string }
+    ): string {
+
+        if (this.noDefaultImportFiles.includes(templateName)) {
+            throw new Error(
+                `'${templateName}' does not have a default export, ` +
+                'export a function that returns JSX or a string'
+            )
+        }
+
+        if (!(templateName in this.templates)) {
+            throw new Error(`template '${templateName}' not found`)
+        }
+
+        if (typeof this.templates[templateName] != 'function') {
+            throw new Error(
+                `default export of '${templateName}' is not a function, ` +
+                'export a function that returns JSX or a string'
+            )
+        }
+
+        const ctx: Context = {
+            content: opts.content,
+            frontmatter: opts.frontmatter,
+            meta: {
+                slug: opts.slug,
+                origin: '',
+            }
+        }
+        const output = this.templates[templateName](ctx)
+
+        if (typeof output == 'string') { return output }
+        return render(output)
     }
 
 }

@@ -1,10 +1,14 @@
 
 
 import * as fs from 'node:fs/promises'
+import * as np from 'node:path'
+import * as ps from 'node:process'
 
-import { type Config, defaultConfig } from './config';
+import colors from 'yoctocolors'
+
+import { type Config } from './config';
 import { type ContentNode, loadContentTree } from './content';
-import { type Processor, createProcessor } from './markdown';
+import { MarkdownEngine } from './markdown';
 import { TemplateEngine } from './template';
 
 
@@ -12,31 +16,48 @@ import { TemplateEngine } from './template';
 export class Engine {
 
     config: Config
-    root: ContentNode
-    processor: Processor
+    nodes: ContentNode[]
+    markdownEngine: MarkdownEngine
     templateEngine: TemplateEngine
 
 
     constructor(
-        root: ContentNode, config: Config, processor: Processor,
+        nodes: ContentNode[], config: Config,
+        markdownEngine: MarkdownEngine,
         templateEngine: TemplateEngine
     ) {
-        this.root = root
+        this.nodes = nodes
         this.config = config
-        this.processor = processor
+        this.markdownEngine = markdownEngine
         this.templateEngine = templateEngine
     }
 
 
-    static async new(config: Config = defaultConfig) {
-        const root = await loadContentTree(config.contentDir, '')
-        // root.printTree()
+    static async new(config: Config): Promise<Engine> {
 
-        const processor = createProcessor()
-        const templateEngine = await TemplateEngine.new(config)
+        await fs.access(np.join(ps.cwd(), 'norite.config.js')).catch(() => {
+            throw new Error(
+                colors.red('norite.config.js not found.\n') +
+                colors.yellow(`run 'npx norite init' or create a blank `) +
+                colors.yellow(`in project root to use defaults\n`)
+            )
+        })
 
-        return new Engine(root, config, processor, templateEngine)
+        const nodes = await loadContentTree(config.contentDir, config.outputDir)
+        // for (const node of nodes) {
+        //     console.log(`<${node.type} ${node.slug}>`)
+        // }
+
+        const templateEngine = await TemplateEngine.new({
+            sourceDir: config.templatesDir,
+            cacheDir: '.norite/_templates',
+        })
+
+        const markdownEngine = new MarkdownEngine()
+
+        return new Engine(nodes, config, markdownEngine, templateEngine)
     }
+
 
 
     async parseTemplates() {
@@ -44,31 +65,33 @@ export class Engine {
     }
 
 
-    async build(opts: { link: boolean } = { link: true }) {
+    async transform() {
+        const tasks = []
+        for (const node of this.nodes) {
+            tasks.push(node.transform(this.markdownEngine, this.templateEngine))
+        }
+        await Promise.all(tasks)
+    }
+
+
+    async build() {
         try {
             await fs.access(this.config.outputDir)
             await fs.rm(this.config.outputDir, { recursive: true })
-        } catch {
-
-        }
+        } catch { }
 
         await fs.mkdir(this.config.outputDir, { recursive: true })
-        await this.root.build(this.config, opts)
-    }
 
-
-    async transform() {
-        await this.root.transform(this.processor, this.config)
-    }
-
-
-    async render() {
-        await this.root.render(this.templateEngine, this.config)
+        const tasks = []
+        for (const node of this.nodes) {
+            tasks.push(node.build({ link: true }))
+        }
+        await Promise.all(tasks)
     }
 
 
     dispose() {
-        this.templateEngine.context.dispose()
+        this.templateEngine._context.dispose()
     }
 
 }
