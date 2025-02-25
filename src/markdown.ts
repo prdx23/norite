@@ -1,6 +1,11 @@
 
 
 import { unified, type Processor as UnifiedProcessor } from 'unified'
+import {visit} from 'unist-util-visit'
+import { reporter } from 'vfile-reporter'
+import { VFile } from 'vfile'
+import { type Root } from 'mdast'
+import yaml from 'yaml'
 
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
@@ -11,9 +16,6 @@ import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import remarkSmartypants from 'remark-smartypants'
 
-import { matter } from 'vfile-matter'
-import { reporter } from 'vfile-reporter'
-import { VFile } from 'vfile'
 
 
 
@@ -23,19 +25,21 @@ export class MarkdownEngine {
 
     constructor() {
         const remarkParseFrontmatterYAML = () => {
-            return function (_: unknown, file: VFile) {
-                matter(file)
+            return function (tree: Root, file: VFile) {
+                visit(tree, 'yaml', (node) => {
+                    file.data.matter = yaml.parse(node.value)
+                })
             }
         }
         this.processor = unified()
             .use(remarkParse)
             .use(remarkFrontmatter)
+            .use(remarkParseFrontmatterYAML)
             .use(remarkSmartypants)
             .use(remarkGfm)
-            .use(remarkParseFrontmatterYAML)
             .use(remarkRehype, {allowDangerousHtml: true})
             .use(rehypeRaw)
-            .use(rehypeFormat, { indent: 4 })
+            // .use(rehypeFormat, { indent: 4 })
             .use(rehypeStringify)
     }
 

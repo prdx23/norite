@@ -6,10 +6,10 @@ import * as ps from 'node:process'
 
 import colors from 'yoctocolors'
 
-import { type Config } from './config';
-import { type ContentNode, loadContentTree } from './content';
-import { MarkdownEngine } from './markdown';
-import { TemplateEngine } from './template';
+import { type Config } from './config'
+import { type ContentNode, loadContentTree } from './content'
+import { MarkdownEngine } from './markdown'
+import { TemplateEngine } from './template'
 
 
 
@@ -68,6 +68,7 @@ export class Engine {
     async transform() {
         const tasks = []
         for (const node of this.nodes) {
+            if (node.type == 'asset') { continue }
             tasks.push(node.transform(this.markdownEngine, this.templateEngine))
         }
         await Promise.all(tasks)

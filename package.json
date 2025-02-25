@@ -37,8 +37,8 @@
         "remark-rehype": "^11.1.1",
         "remark-smartypants": "^3.0.2",
         "unified": "^11.0.5",
-        "vfile-matter": "^5.0.0",
         "vfile-reporter": "^8.1.1",
+        "yaml": "^2.7.0",
         "yoctocolors": "^2.1.1"
     }
 }
