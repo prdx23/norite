@@ -14,6 +14,120 @@ import { Context } from './main'
 
 
 
+function noriteBundler(outBase: string, outDir: string): esbuild.Plugin {
+
+    async function onResolve(
+        args: esbuild.OnResolveArgs, build: esbuild.PluginBuild
+    ): Promise<esbuild.OnResolveResult> {
+
+        let path = args.path.replace('bundle:', '')
+        const ext = np.extname(path)
+
+        if (ext != '.js' && ext != '.ts' && ext != '.css') {
+            return { errors: [{
+                text: `filetype '${ext}' not supported in 'bundle:' paths`,
+            }]}
+        }
+
+        const result = await build.resolve(path, {
+            kind: args.kind,
+            resolveDir: args.resolveDir,
+            importer: args.importer,
+        })
+
+        if (result.errors.length > 0) {
+            return { errors: result.errors }
+        }
+
+        path = result.path
+        if (ext == '.ts') {
+            path = np.join(
+                np.dirname(result.path), `${np.basename(result.path, ext)}.js`,
+            )
+        }
+
+        return {
+            warnings: result.warnings,
+            path: path,
+            namespace: 'norite-bundle',
+            pluginData: { norite: { originalPath: result.path } },
+            // external: true,
+        }
+
+    }
+
+
+    async function onLoad(
+        args: esbuild.OnLoadArgs
+    ): Promise<esbuild.OnLoadResult> {
+
+        const filetypes = [
+            // images
+            'apng', 'bmp', 'png', 'jpg', 'jpeg', 'jfif', 'pjpeg',
+            'pjp', 'gif', 'svg', 'ico', 'webp', 'avif', 'cur', 'jxl',
+            // media
+            'mp4', 'webm', 'ogg', 'mp3', 'wav', 'flac', 'aac',
+            'opus', 'mov', 'm4a', 'vtt',
+            // fonts
+            'woff', 'woff2', 'eot', 'ttf', 'otf',
+            // other
+            'webmanifest', 'pdf', 'txt', 'vert', 'frag', 'glsl', 'comp',
+        ]
+
+        const result = await esbuild.build({
+            entryPoints: [args.path],
+            outbase: outBase,
+            outdir: outDir,
+            assetNames: 'bundle/[ext]/[name]-[hash]',
+            format: 'esm',
+            bundle: true,
+            metafile: true,
+            // write: false,
+            loader: Object.fromEntries(
+                filetypes.map(x => [`.${x}`, 'file' as esbuild.Loader])
+            ),
+        })
+
+        let contents
+        const originalPath = args.pluginData.norite.originalPath ?? ''
+        for (const [path, obj] of Object.entries(result.metafile.outputs)) {
+            if (obj.entryPoint && np.resolve(obj.entryPoint) == originalPath) {
+                contents = await fs.readFile(path, 'utf8')
+                break
+            }
+        }
+
+        return {
+            contents: contents,
+            loader: 'file',
+            // resolveDir: np.dirname(args.path),
+        }
+    }
+
+
+    return {
+        name: 'norite-loader',
+        setup(build) {
+            build.onResolve(
+                { filter: /^bundle:.*$/ },
+                async (args) => {
+                    return await onResolve(args, build)
+                }
+            )
+            build.onLoad(
+                { filter: /^.*$/, namespace: 'norite-bundle' },
+                async (args) => {
+                    return await onLoad(args)
+                }
+            )
+        },
+    }
+}
+
+
+
+
+
 export class TemplateEngine {
 
     templates: Record<string, Function> = {}
@@ -36,18 +150,21 @@ export class TemplateEngine {
 
 
     static async new(opts: { sourceDir: string, cacheDir: string }) {
+
         const ctx = await esbuild.context({
             entryPoints: [
-                np.join(opts.sourceDir, '/**/*.js'),
-                np.join(opts.sourceDir, '/**/*.ts'),
+                // np.join(opts.sourceDir, '/**/*.js'),
+                // np.join(opts.sourceDir, '/**/*.ts'),
                 np.join(opts.sourceDir, '/**/*.jsx'),
                 np.join(opts.sourceDir, '/**/*.tsx'),
             ],
+            outbase: opts.sourceDir,
+            outdir: opts.cacheDir,
+            assetNames: 'bundle/[ext]/[name]-[hash]',
+            // chunkNames: 'chunks/[name]-[hash]',
 
             format: 'esm',
             bundle: true,
-            outbase: opts.sourceDir,
-            outdir: opts.cacheDir,
             metafile: true,
             logOverride: {
                 'empty-glob': 'info',
@@ -59,6 +176,10 @@ export class TemplateEngine {
             jsxFragment: 'Fragment',
             jsxImportSource: 'norite',
             external: ['norite/jsx-runtime'],
+
+            plugins: [
+                noriteBundler(opts.sourceDir, opts.cacheDir),
+            ],
         })
         return new TemplateEngine(ctx, opts)
     }
@@ -90,7 +211,8 @@ export class TemplateEngine {
                 path.replace(`${this._cacheDir}/`, ''), np.extname(path)
             )
 
-            if (np.extname(path) != '.js') { continue }
+            const ext = np.extname(obj.entryPoint ?? '')
+            if (ext != '.tsx' && ext != '.jsx') { continue }
 
             if (!obj.exports || !obj.exports.includes('default')) {
                 this.noDefaultImportFiles.push(name)

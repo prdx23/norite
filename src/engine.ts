@@ -50,7 +50,7 @@ export class Engine {
 
         const templateEngine = await TemplateEngine.new({
             sourceDir: config.templatesDir,
-            cacheDir: '.norite/_templates',
+            cacheDir: np.join(config.cacheDir, 'templates'),
         })
 
         const markdownEngine = new MarkdownEngine()
@@ -83,8 +83,14 @@ export class Engine {
 
         await fs.mkdir(this.config.outputDir, { recursive: true })
 
+        const bundleNodes = await loadContentTree(
+            np.join(this.config.cacheDir, 'templates', 'bundle'),
+            np.join(this.config.outputDir, 'bundle'),
+        )
+
         const tasks = []
-        for (const node of this.nodes) {
+        const nodes = this.nodes.concat(bundleNodes)
+        for (const node of nodes) {
             tasks.push(node.build({ link: true }))
         }
         await Promise.all(tasks)

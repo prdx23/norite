@@ -13,6 +13,7 @@ export default defineConfig({
     format: ['esm'],
     clean: true,
     dts: true,
+    // sourcemap: "inline",
 
     watch: 'src/',
 
