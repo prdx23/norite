@@ -17,5 +17,6 @@ export default defineConfig({
 
     watch: 'src/',
 
+    external: ['postcss-load-config']
 })
 

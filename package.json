@@ -26,6 +26,7 @@
     },
     "dependencies": {
         "esbuild": "0.25.0",
+        "postcss": "^8.5.3",
         "preact": "^10.26.2",
         "preact-render-to-string": "^6.5.13",
         "rehype-format": "^5.0.1",
