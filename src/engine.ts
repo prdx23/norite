@@ -42,7 +42,9 @@ export class Engine {
         })
 
         const bundleNodes = await loadContentTree({
-            sourceDir: np.join(this.config.cacheDir, TemplateEngine.templateDir),
+            sourceDir: np.join(
+                this.config.internal.cacheDir, TemplateEngine.templateDir
+            ),
             initialPath: TemplateEngine.bundleDir,
         })
 

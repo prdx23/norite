@@ -12,6 +12,7 @@ import chokidar from 'chokidar'
 
 
 async function build(engine: Engine) {
+    console.time('build')
     await engine.parseTemplates()
     await engine.loadNodes()
     await engine.transform()
@@ -19,10 +20,13 @@ async function build(engine: Engine) {
         outputDir: engine.config.outputDir,
         link: false,
     })
+    console.timeEnd('build')
+    console.log()
+    engine.dispose()
 }
 
 
-async function serve(engine: Engine) {
+async function dev(engine: Engine) {
 
     type RunType = 'all' | 'content' | 'transform'
     async function run(type: RunType) {
@@ -35,7 +39,7 @@ async function serve(engine: Engine) {
         }
         await engine.transform()
         await engine.build({
-            outputDir: np.join(engine.config.cacheDir, 'output'),
+            outputDir: np.join(engine.config.internal.cacheDir, 'output'),
             link: true,
         })
         console.timeEnd('build')
@@ -100,18 +104,25 @@ async function main() {
             new MarkdownEngine(),
             await TemplateEngine.new({
                 sourceDir: config.templatesDir,
-                cacheDir: np.join(config.cacheDir, 'templates'),
+                cacheDir: np.join(config.internal.cacheDir, 'templates'),
             }),
         )
     } catch(err: any) {
         console.error(colors.red(err))
-        // console.error(err.stack)
+        console.error(err.stack)
         return
     }
 
+    const command = process.argv[2]
     try {
-        // await build(engine)
-        await serve(engine)
+        if (command == 'dev') {
+            await dev(engine)
+        } else if (command == 'build') {
+            await build(engine)
+        } else {
+            console.log(helpText)
+            engine.dispose()
+        }
     } catch(err: any) {
         console.error(colors.red(err))
         console.error(err.stack)
@@ -127,3 +138,20 @@ async function main() {
 
 
 main()
+
+
+const helpText = `
+Usage: norite [command] [options]
+
+Commands:
+    dev          - Start dev server
+    build        - Build the website
+
+Options:
+    --help       - Show this help
+    --host       - Set host (default: localhost)
+    --port       - Set port (default: 2323)
+    --contentDir - Set content directory (default: src/content)
+    --templateDir- Set template directory (default: src/templates)
+    --outputDir  - Set output directory (default: dist)
+`
