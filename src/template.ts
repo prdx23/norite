@@ -5,12 +5,13 @@ import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
 import Module from 'node:module'
 
+import { noriteBundler } from './plugins/norite-bundler'
+
 import * as esbuild from 'esbuild'
 import { render } from 'preact-render-to-string'
 import { Context } from './main'
 // import { render } from 'preact-render-to-string/jsx'
 
-import { noriteBundler } from './plugins/norite-bundler'
 
 
 export class TemplateEngine {

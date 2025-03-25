@@ -19,7 +19,7 @@ const defaultConfig: Config = {
 
     contentDir: 'src/content',
     templatesDir: 'src/templates',
-    outputDir: '.norite/output',
+    outputDir: '.norite/dist',
     cacheDir: '.norite',
 
 }

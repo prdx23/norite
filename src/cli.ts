@@ -2,12 +2,89 @@
 
 import * as np from 'node:path'
 
-import colors from 'yoctocolors'
-
 import { MarkdownEngine } from './markdown'
 import { TemplateEngine } from './template'
 import { Engine } from './engine'
 import { loadConfig } from './config'
+
+import colors from 'yoctocolors'
+import chokidar from 'chokidar'
+
+
+async function build(engine: Engine) {
+    await engine.parseTemplates()
+    await engine.loadNodes()
+    await engine.transform()
+    await engine.build({
+        outputDir: engine.config.outputDir,
+        link: false,
+    })
+}
+
+
+async function serve(engine: Engine) {
+
+    type RunType = 'all' | 'content' | 'transform'
+    async function run(type: RunType) {
+        console.time('build')
+        if (type == 'all') {
+            await engine.parseTemplates()
+            await engine.loadNodes()
+        } else if (type == 'content') {
+            await engine.loadNodes()
+        }
+        await engine.transform()
+        await engine.build({
+            outputDir: np.join(engine.config.cacheDir, 'output'),
+            link: true,
+        })
+        console.timeEnd('build')
+        console.log()
+    }
+    await run('all')
+
+
+    const queue: RunType[] = []
+    let isProcessing = false;
+    async function processQueue(type: RunType, event: string, path: string) {
+        console.log(`${colors.cyan(event)}: ${path}`)
+        queue.push(type)
+        if (isProcessing) { return }
+
+        isProcessing = true
+        while (queue.length > 0) { await run(queue.shift()!) }
+        isProcessing = false
+    }
+
+    const contentWatcher = chokidar.watch(engine.config.contentDir, {
+        persistent: true,
+        ignoreInitial: true,
+    })
+    contentWatcher.on('add', async (path) => {
+        processQueue('content', 'add', path)
+    })
+    contentWatcher.on('change', async (path) => {
+        processQueue('transform', 'change', path)
+    })
+    contentWatcher.on('unlink', async (path) => {
+        processQueue('content', 'remove', path)
+    })
+
+    const templatesWatcher = chokidar.watch(engine.config.templatesDir, {
+        persistent: true,
+        ignoreInitial: true,
+    })
+    templatesWatcher.on('add', async (path) => {
+        processQueue('all', 'add', path)
+    })
+    templatesWatcher.on('change', async (path) => {
+        processQueue('all', 'change', path)
+    })
+    templatesWatcher.on('unlink', async (path) => {
+        processQueue('all', 'remove', path)
+    })
+
+}
 
 
 
@@ -32,34 +109,19 @@ async function main() {
         return
     }
 
-
     try {
-
-        console.time('parse templates')
-        await engine.parseTemplates()
-        console.timeEnd('parse templates')
-
-        console.time('load nodes')
-        await engine.loadNodes()
-        console.timeEnd('load nodes')
-
-        console.time('transform')
-        await engine.transform()
-        console.timeEnd('transform')
-
-        console.time('build')
-        await engine.build({
-            outputDir: config.outputDir,
-            link: true,
-        })
-        console.timeEnd('build')
-
+        // await build(engine)
+        await serve(engine)
     } catch(err: any) {
         console.error(colors.red(err))
         console.error(err.stack)
-    } finally {
-        engine.dispose()
     }
+
+    process.on('SIGINT', () => {
+        console.log('\nExiting...')
+        engine.dispose()
+        process.exit(0)
+    })
 
 }
 

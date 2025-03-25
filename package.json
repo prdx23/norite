@@ -25,6 +25,7 @@
         "typescript": "~5.7.2"
     },
     "dependencies": {
+        "chokidar": "^4.0.3",
         "esbuild": "0.25.0",
         "postcss": "^8.5.3",
         "preact": "^10.26.2",
