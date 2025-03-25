@@ -1,7 +1,6 @@
 
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
-import * as ps from 'node:process'
 
 import { MarkdownEngine } from './markdown'
 import { TemplateEngine } from './template'
@@ -15,25 +14,22 @@ export class ContentNode {
     type: ContentNodeType
     slug: string
     path: string
-    _contentDir: string
+    _sourceDir: string
     _outputPath: string
 
     content: string = ''
 
-    constructor(
-        type: ContentNodeType, path: string,
-        contentDir: string, outputDir: string,
-    ) {
+    constructor(type: ContentNodeType, path: string, sourceDir: string) {
         this.type = type
         this.path = path
-        this._contentDir = contentDir
-        this._outputPath = np.join(outputDir, path)
+        this._sourceDir = sourceDir
+        this._outputPath = path
         this.slug = np.join('/', path)
 
         if (type == 'page') {
 
             const filename = `${np.basename(path, np.extname(path))}.html`
-            this._outputPath = np.join(outputDir, np.dirname(path), filename)
+            this._outputPath = np.join(np.dirname(path), filename)
 
             if (filename == 'index.html') {
                 this.slug = np.join('/', np.dirname(path))
@@ -47,10 +43,10 @@ export class ContentNode {
 
     async transform(mdEngine: MarkdownEngine, templateEngine: TemplateEngine) {
 
-        if (this.type == 'asset') { return }
+        if (this.type != 'page') { return }
 
         const text = await fs.readFile(
-            np.join(this._contentDir, this.path), {encoding: 'utf8'}
+            np.join(this._sourceDir, this.path), {encoding: 'utf8'}
         )
 
         let parsed = ''
@@ -79,9 +75,11 @@ export class ContentNode {
     }
 
 
-    async build(opts: { link: boolean }) {
+    async build(opts: { outputDir: string, link: boolean }) {
 
-        const parent = np.dirname(this._outputPath)
+        const outPath = np.join(opts.outputDir, this._outputPath)
+
+        const parent = np.dirname(outPath)
         await fs.access(parent).catch(async () => {
             await fs.mkdir(parent, { recursive: true })
         })
@@ -89,19 +87,19 @@ export class ContentNode {
         if (this.type == 'asset') {
             if (opts.link) {
                 await fs.symlink(
-                    np.join(ps.cwd(), this._contentDir, this.path),
-                    this._outputPath
+                    np.resolve(np.join(this._sourceDir, this.path)),
+                    outPath
                 )
             } else {
                 await fs.cp(
-                    np.join(this._contentDir, this.path),
-                    this._outputPath
+                    np.join(this._sourceDir, this.path),
+                    outPath
                 )
             }
         }
 
         if (this.type == 'page') {
-            await fs.writeFile(this._outputPath, this.content)
+            await fs.writeFile(outPath, this.content)
         }
 
     }
@@ -119,20 +117,21 @@ function detectNodeType(path: string): ContentNodeType {
 }
 
 export async function loadContentTree(
-    contentDir: string, outputDir: string,
+    opts: { sourceDir: string, initialPath: string}
 ): Promise<ContentNode[]> {
 
-    const paths = ['']
+    const paths = [opts.initialPath]
     const nodes: ContentNode[] = []
 
-    await fs.access(contentDir).catch(() => {
-        throw new Error(`'${contentDir}' not found`)
+    const testPath = np.join(opts.sourceDir, opts.initialPath)
+    await fs.access(testPath).catch(() => {
+        throw new Error(`'${testPath}' not found`)
     })
 
     while (paths.length > 0) {
 
         const route = paths.pop()!
-        const path = np.join(contentDir, route)
+        const path = np.join(opts.sourceDir, route)
         const lstat = await fs.lstat(path)
 
         if (lstat.isDirectory()) {
@@ -144,11 +143,11 @@ export async function loadContentTree(
         }
 
         if (lstat.isFile() && detectNodeType(path) == 'page') {
-            nodes.push(new ContentNode('page', route, contentDir, outputDir))
+            nodes.push(new ContentNode('page', route, opts.sourceDir))
             continue
         }
 
-        nodes.push(new ContentNode('asset', route, contentDir, outputDir))
+        nodes.push(new ContentNode('asset', route, opts.sourceDir))
 
     }
 
@@ -156,8 +155,8 @@ export async function loadContentTree(
         for (let j = i + 1; j <= nodes.length - 1; j++) {
             if (nodes[i].slug == nodes[j].slug) {
                 throw new Error(
-                    `both '${np.join(contentDir, nodes[i].path)}'` +
-                    ` and '${np.join(contentDir, nodes[j].path)}'` +
+                    `both '${np.join(opts.sourceDir, nodes[i].path)}'` +
+                    ` and '${np.join(opts.sourceDir, nodes[j].path)}'` +
                     ` map to same output file`
                 )
             }

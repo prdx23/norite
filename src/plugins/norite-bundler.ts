@@ -6,7 +6,9 @@ import * as esbuild from 'esbuild'
 import { noritePostcss } from './norite-postcss'
 
 
-export function noriteBundler(outBase: string, outDir: string): esbuild.Plugin {
+export function noriteBundler(
+    outBase: string, outDir: string, bundleDir: string,
+): esbuild.Plugin {
 
     async function onResolve(
         args: esbuild.OnResolveArgs, build: esbuild.PluginBuild
@@ -70,7 +72,7 @@ export function noriteBundler(outBase: string, outDir: string): esbuild.Plugin {
             entryPoints: [args.path],
             outbase: outBase,
             outdir: outDir,
-            assetNames: 'bundle/[ext]/[name]-[hash]',
+            assetNames: `${bundleDir}/[ext]/[name]-[hash]`,
             format: 'esm',
             bundle: true,
             metafile: true,

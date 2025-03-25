@@ -2,9 +2,6 @@
 
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
-import * as ps from 'node:process'
-
-import colors from 'yoctocolors'
 
 import { type Config } from './config'
 import { type ContentNode, loadContentTree } from './content'
@@ -33,37 +30,28 @@ export class Engine {
     }
 
 
-    static async new(config: Config): Promise<Engine> {
-
-        await fs.access(np.join(ps.cwd(), 'norite.config.js')).catch(() => {
-            throw new Error(
-                colors.red('norite.config.js not found.\n') +
-                colors.yellow(`run 'npx norite init' or create a blank `) +
-                colors.yellow(`in project root to use defaults\n`)
-            )
-        })
-
-        const nodes = await loadContentTree(config.contentDir, config.outputDir)
-        // for (const node of nodes) {
-        //     console.log(`<${node.type} ${node.slug}>`)
-        // }
-
-        const templateEngine = await TemplateEngine.new({
-            sourceDir: config.templatesDir,
-            cacheDir: np.join(config.cacheDir, 'templates'),
-        })
-
-        const markdownEngine = new MarkdownEngine()
-
-        return new Engine(nodes, config, markdownEngine, templateEngine)
-    }
-
-
-
     async parseTemplates() {
         await this.templateEngine.parse()
     }
 
+    async loadNodes() {
+
+        const contentNodes = await loadContentTree({
+            sourceDir: this.config.contentDir,
+            initialPath: ''
+        })
+
+        const bundleNodes = await loadContentTree({
+            sourceDir: np.join(this.config.cacheDir, TemplateEngine.templateDir),
+            initialPath: TemplateEngine.bundleDir,
+        })
+
+        this.nodes = contentNodes.concat(bundleNodes)
+
+        // for (const node of this.nodes) {
+        //     console.log(`<${node.type} ${node.slug}>`)
+        // }
+    }
 
     async transform() {
         const tasks = []
@@ -75,30 +63,24 @@ export class Engine {
     }
 
 
-    async build() {
+    async build(opts: { outputDir: string, link: boolean }) {
         try {
-            await fs.access(this.config.outputDir)
-            await fs.rm(this.config.outputDir, { recursive: true })
+            await fs.access(opts.outputDir)
+            await fs.rm(opts.outputDir, { recursive: true })
         } catch { }
 
-        await fs.mkdir(this.config.outputDir, { recursive: true })
-
-        const bundleNodes = await loadContentTree(
-            np.join(this.config.cacheDir, 'templates', 'bundle'),
-            np.join(this.config.outputDir, 'bundle'),
-        )
+        await fs.mkdir(opts.outputDir, { recursive: true })
 
         const tasks = []
-        const nodes = this.nodes.concat(bundleNodes)
-        for (const node of nodes) {
-            tasks.push(node.build({ link: true }))
+        for (const node of this.nodes) {
+            tasks.push(node.build(opts))
         }
         await Promise.all(tasks)
     }
 
 
     dispose() {
-        this.templateEngine._context.dispose()
+        this.templateEngine._esbuildContext.dispose()
     }
 
 }

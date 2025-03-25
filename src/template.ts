@@ -3,7 +3,6 @@
 
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
-import * as ps from 'node:process'
 import Module from 'node:module'
 
 import * as esbuild from 'esbuild'
@@ -21,22 +20,23 @@ export class TemplateEngine {
 
     _sourceDir: string
     _cacheDir: string
-    _context: esbuild.BuildContext<any>
+    _esbuildContext: esbuild.BuildContext<any>
     _require = Module.createRequire(import.meta.url)
 
+    static templateDir: string = 'templates'
+    static bundleDir: string = 'bundle'
 
     constructor(
         ctx: esbuild.BuildContext<any>,
         opts: { sourceDir: string, cacheDir: string }
     ) {
-        this._context = ctx
+        this._esbuildContext = ctx
         this._sourceDir = opts.sourceDir
         this._cacheDir = opts.cacheDir
     }
 
 
     static async new(opts: { sourceDir: string, cacheDir: string }) {
-
         const ctx = await esbuild.context({
             entryPoints: [
                 // np.join(opts.sourceDir, '/**/*.js'),
@@ -46,7 +46,7 @@ export class TemplateEngine {
             ],
             outbase: opts.sourceDir,
             outdir: opts.cacheDir,
-            assetNames: 'bundle/[ext]/[name]-[hash]',
+            assetNames: `${TemplateEngine.bundleDir}/[ext]/[name]-[hash]`,
             // chunkNames: 'chunks/[name]-[hash]',
 
             format: 'esm',
@@ -64,7 +64,9 @@ export class TemplateEngine {
             external: ['norite/jsx-runtime'],
 
             plugins: [
-                noriteBundler(opts.sourceDir, opts.cacheDir),
+                noriteBundler(
+                    opts.sourceDir, opts.cacheDir, TemplateEngine.bundleDir
+                ),
             ],
         })
         return new TemplateEngine(ctx, opts)
@@ -90,7 +92,7 @@ export class TemplateEngine {
         this.templates = {}
         this.noDefaultImportFiles = []
 
-        const result = await this._context.rebuild()
+        const result = await this._esbuildContext.rebuild()
 
         for (const [path, obj] of Object.entries(result.metafile!.outputs)) {
             const name = np.basename(
@@ -105,7 +107,7 @@ export class TemplateEngine {
                 continue
             }
 
-            const fullpath = np.join(ps.cwd(), path)
+            const fullpath = np.resolve(path)
             this.templates[name] = this._require(fullpath).default
         }
 
