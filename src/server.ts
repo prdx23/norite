@@ -6,13 +6,14 @@ import http from 'http'
 import { WebSocketServer } from 'ws'
 
 import { Config } from './config'
+import { HtmlProcessor } from './processors'
 
 
-export function createServer(dir: string, config: Config) {
+export function createDevServer(dir: string, config: Config) {
 
     const connectServer = connect()
     connectServer.use((req, res, next) => {
-        if (req.url === '/norite-reload.js') {
+        if (req.url === `/${HtmlProcessor.scriptName}`) {
             res.setHeader('Content-Type', 'application/javascript')
             res.end(reloadScript)
             return
@@ -28,7 +29,7 @@ export function createServer(dir: string, config: Config) {
         () => { console.log(
             `\nListening on ` +
             `${colors.green(config.server.host)}:` +
-            `${colors.cyan(config.server.port.toString())}!\n`
+            `${colors.cyan(config.server.port.toString())}!`
         )}
     )
 

@@ -2,18 +2,8 @@
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
 
-import { MarkdownEngine } from './markdown'
+import { MarkdownProcessor, HtmlProcessor } from './processors'
 import { TemplateEngine } from './template'
-
-import { VFile } from 'vfile'
-import { type Root } from 'hast'
-import { h } from 'hastscript'
-import { visit } from 'unist-util-visit'
-import { unified } from 'unified'
-import { reporter } from 'vfile-reporter'
-import rehypeParse from 'rehype-parse'
-import rehypeFormat from 'rehype-format'
-import rehypeStringify from 'rehype-stringify'
 
 
 
@@ -52,7 +42,9 @@ export class ContentNode {
 
 
     async transform(opts: {
-        mdEngine: MarkdownEngine, templateEngine: TemplateEngine, dev: boolean
+        markdownProcessor: MarkdownProcessor,
+        htmlProcessor: HtmlProcessor,
+        templateEngine: TemplateEngine,
     }) {
 
         if (this.type != 'page') { return }
@@ -72,7 +64,7 @@ export class ContentNode {
         }
 
         if (np.extname(this.path) == '.md') {
-            const result = await opts.mdEngine.parse(text)
+            const result = await opts.markdownProcessor.parse(text)
             parsed = result.content
             frontmatter = {
                 template: '',
@@ -84,35 +76,7 @@ export class ContentNode {
             content: parsed, frontmatter, slug: this.slug
         })
 
-        const rehypeNorite = (opts: { filename: string, dev: boolean }) => {
-            return function (tree: Root) {
-
-                tree.children.unshift({ type: 'text', value: '\n' })
-                tree.children.unshift({ type: 'doctype' })
-
-                if (!opts.dev) { return }
-
-                visit(tree, 'element', (node) => {
-                    if (node.tagName === 'body') {
-                        node.children.push(h('script', { src: opts.filename }))
-                    }
-
-                })
-            }
-        }
-
-        const html = await unified()
-            .use(rehypeParse)
-            .use(rehypeNorite, {filename: '/norite-reload.js', dev: opts.dev})
-            .use(rehypeFormat, { indent: 4 })
-            .use(rehypeStringify)
-            .process(new VFile({ value: unprocessedHtml }))
-
-        const report = reporter(html, { silent: true })
-        if (report) { console.error(report) }
-
-        this.content = String(html)
-
+        this.content = await opts.htmlProcessor.parse(unprocessedHtml)
     }
 
 
@@ -157,7 +121,7 @@ function detectNodeType(path: string): ContentNodeType {
     return 'asset'
 }
 
-export async function loadContentTree(
+export async function loadDirTree(
     opts: { sourceDir: string, initialPath: string}
 ): Promise<ContentNode[]> {
 

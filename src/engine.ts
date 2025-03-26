@@ -4,44 +4,69 @@ import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
 
 import { type Config } from './config'
-import { type ContentNode, loadContentTree } from './content'
-import { MarkdownEngine } from './markdown'
+import { type ContentNode, loadDirTree } from './content'
+import { MarkdownProcessor, HtmlProcessor } from './processors'
 import { TemplateEngine } from './template'
+import { createDevServer } from './server'
+
+import colors from 'yoctocolors'
+import chokidar from 'chokidar'
 
 
+
+type Mode = 'dev' | 'build'
+type BuildLevel = 'full' | 'content' | 'transform'
 
 export class Engine {
 
     config: Config
     nodes: ContentNode[]
-    markdownEngine: MarkdownEngine
+    markdownProcessor: MarkdownProcessor
+    htmlProcessor: HtmlProcessor
     templateEngine: TemplateEngine
+    mode: Mode
+    _devOutputDir: string
 
 
     constructor(
-        nodes: ContentNode[], config: Config,
-        markdownEngine: MarkdownEngine,
-        templateEngine: TemplateEngine
+        config: Config,
+        mode: Mode,
+        markdownProcessor: MarkdownProcessor,
+        HtmlProcessor: HtmlProcessor,
+        templateEngine: TemplateEngine,
     ) {
-        this.nodes = nodes
+        this.nodes = []
         this.config = config
-        this.markdownEngine = markdownEngine
+        this.markdownProcessor = markdownProcessor
+        this.htmlProcessor = HtmlProcessor
         this.templateEngine = templateEngine
+        this.mode = mode
+        this._devOutputDir = np.join(config.internal.cacheDir, 'output')
     }
 
 
-    async parseTemplates() {
-        await this.templateEngine.parse()
+    static async new(config: Config, mode: Mode) {
+        return new Engine(
+            config,
+            mode,
+            new MarkdownProcessor(),
+            new HtmlProcessor(mode),
+            await TemplateEngine.new({
+                sourceDir: config.templatesDir,
+                cacheDir: np.join(config.internal.cacheDir, 'templates'),
+            }),
+        )
     }
 
-    async loadNodes() {
 
-        const contentNodes = await loadContentTree({
+    async _loadNodes() {
+
+        const contentNodes = await loadDirTree({
             sourceDir: this.config.contentDir,
             initialPath: ''
         })
 
-        const bundleNodes = await loadContentTree({
+        const bundleNodes = await loadDirTree({
             sourceDir: np.join(
                 this.config.internal.cacheDir, TemplateEngine.templateDir
             ),
@@ -55,13 +80,14 @@ export class Engine {
         // }
     }
 
-    async transform(opts: { dev: boolean }) {
+
+    async _transformNodes() {
         const tasks = []
         for (const node of this.nodes) {
             if (node.type == 'asset') { continue }
             tasks.push(node.transform({
-                dev: opts.dev,
-                mdEngine: this.markdownEngine,
+                markdownProcessor: this.markdownProcessor,
+                htmlProcessor: this.htmlProcessor,
                 templateEngine: this.templateEngine
             }))
         }
@@ -69,7 +95,16 @@ export class Engine {
     }
 
 
-    async build(opts: { outputDir: string, link: boolean }) {
+    async _buildNodes() {
+
+        const opts = this.mode == 'dev' ? {
+            outputDir: this._devOutputDir,
+            link: true,
+        } : {
+            outputDir: this.config.outputDir,
+            link: false,
+        }
+
         try {
             await fs.access(opts.outputDir)
             await fs.rm(opts.outputDir, { recursive: true })
@@ -84,9 +119,96 @@ export class Engine {
         await Promise.all(tasks)
     }
 
-
-    dispose() {
+    _dispose() {
         this.templateEngine._esbuildContext.dispose()
+    }
+
+
+    async _run(level: BuildLevel) {
+        console.time('build')
+
+        if (level == 'full') {
+            await this.templateEngine.parse()
+        }
+
+        if (level == 'full' || level == 'content') {
+            await this._loadNodes()
+        }
+
+        await this._transformNodes()
+        await this._buildNodes()
+
+        console.timeEnd('build')
+        console.log()
+    }
+
+
+    async build() {
+        await this._run('full')
+        this._dispose()
+    }
+
+
+    async dev() {
+
+        const broadcastReload = createDevServer(this._devOutputDir, this.config)
+
+        await this._run('full')
+
+        const queue: BuildLevel[] = []
+        let isProcessing = false;
+
+        const processQueue = async (
+            type: BuildLevel, event: string, path: string
+        ) => {
+            console.log(`${colors.cyan(event)}: ${path}`)
+            queue.push(type)
+            if (isProcessing) { return }
+
+            isProcessing = true
+            while (queue.length > 0) {
+                await this._run(queue.shift()!)
+                broadcastReload()
+            }
+            isProcessing = false
+        }
+
+        const contentWatcher = chokidar.watch(this.config.contentDir, {
+            persistent: true,
+            ignoreInitial: true,
+            awaitWriteFinish: { stabilityThreshold: 200 },
+        })
+        contentWatcher.on('add', (path) => {
+            processQueue('content', 'add', path)
+        })
+        contentWatcher.on('change', (path) => {
+            processQueue('transform', 'change', path)
+        })
+        contentWatcher.on('unlink', (path) => {
+            processQueue('content', 'remove', path)
+        })
+
+        const templatesWatcher = chokidar.watch(this.config.templatesDir, {
+            persistent: true,
+            ignoreInitial: true,
+            awaitWriteFinish: { stabilityThreshold: 200 },
+        })
+        templatesWatcher.on('add', (path) => {
+            processQueue('full', 'add', path)
+        })
+        templatesWatcher.on('change', (path) => {
+            processQueue('full', 'change', path)
+        })
+        templatesWatcher.on('unlink', (path) => {
+            processQueue('full', 'remove', path)
+        })
+
+        process.on('SIGINT', () => {
+            console.log('\nExiting...')
+            this._dispose()
+            process.exit(0)
+        })
+
     }
 
 }
