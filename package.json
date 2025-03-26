@@ -20,17 +20,22 @@
         "build": "tsc && tsup"
     },
     "devDependencies": {
+        "@types/connect": "^3.4.38",
         "@types/node": "^22.13.4",
+        "@types/serve-static": "^1.15.7",
+        "@types/ws": "^8.18.0",
         "tsup": "^8.3.6",
         "typescript": "~5.7.2"
     },
     "dependencies": {
         "chokidar": "^4.0.3",
+        "connect": "^3.7.0",
         "esbuild": "0.25.0",
         "postcss": "^8.5.3",
         "preact": "^10.26.2",
         "preact-render-to-string": "^6.5.13",
         "rehype-format": "^5.0.1",
+        "rehype-parse": "^9.0.1",
         "rehype-raw": "^7.0.0",
         "rehype-stringify": "^10.0.1",
         "remark-frontmatter": "^5.0.0",
@@ -38,8 +43,10 @@
         "remark-parse": "^11.0.0",
         "remark-rehype": "^11.1.1",
         "remark-smartypants": "^3.0.2",
+        "serve-static": "^1.16.2",
         "unified": "^11.0.5",
         "vfile-reporter": "^8.1.1",
+        "ws": "^8.18.1",
         "yaml": "^2.7.0",
         "yoctocolors": "^2.1.1"
     }

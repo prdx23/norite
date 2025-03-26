@@ -1,7 +1,7 @@
 
 
 import { unified, type Processor as UnifiedProcessor } from 'unified'
-import {visit} from 'unist-util-visit'
+import { visit } from 'unist-util-visit'
 import { reporter } from 'vfile-reporter'
 import { VFile } from 'vfile'
 import { type Root } from 'mdast'

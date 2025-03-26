@@ -6,6 +6,7 @@ import { MarkdownEngine } from './markdown'
 import { TemplateEngine } from './template'
 import { Engine } from './engine'
 import { loadConfig } from './config'
+import { createServer } from './server'
 
 import colors from 'yoctocolors'
 import chokidar from 'chokidar'
@@ -15,7 +16,7 @@ async function build(engine: Engine) {
     console.time('build')
     await engine.parseTemplates()
     await engine.loadNodes()
-    await engine.transform()
+    await engine.transform({ dev: false })
     await engine.build({
         outputDir: engine.config.outputDir,
         link: false,
@@ -28,6 +29,9 @@ async function build(engine: Engine) {
 
 async function dev(engine: Engine) {
 
+    const outputDir = np.join(engine.config.internal.cacheDir, 'output')
+    const broadcastReload = createServer(outputDir, engine.config)
+
     type RunType = 'all' | 'content' | 'transform'
     async function run(type: RunType) {
         console.time('build')
@@ -37,13 +41,11 @@ async function dev(engine: Engine) {
         } else if (type == 'content') {
             await engine.loadNodes()
         }
-        await engine.transform()
-        await engine.build({
-            outputDir: np.join(engine.config.internal.cacheDir, 'output'),
-            link: true,
-        })
+        await engine.transform({ dev: false })
+        await engine.build({ outputDir: outputDir, link: true })
         console.timeEnd('build')
         console.log()
+        broadcastReload()
     }
     await run('all')
 
@@ -63,6 +65,7 @@ async function dev(engine: Engine) {
     const contentWatcher = chokidar.watch(engine.config.contentDir, {
         persistent: true,
         ignoreInitial: true,
+        awaitWriteFinish: { stabilityThreshold: 200 },
     })
     contentWatcher.on('add', async (path) => {
         processQueue('content', 'add', path)
@@ -77,6 +80,7 @@ async function dev(engine: Engine) {
     const templatesWatcher = chokidar.watch(engine.config.templatesDir, {
         persistent: true,
         ignoreInitial: true,
+        awaitWriteFinish: { stabilityThreshold: 200 },
     })
     templatesWatcher.on('add', async (path) => {
         processQueue('all', 'add', path)
@@ -86,6 +90,12 @@ async function dev(engine: Engine) {
     })
     templatesWatcher.on('unlink', async (path) => {
         processQueue('all', 'remove', path)
+    })
+
+    process.on('SIGINT', () => {
+        console.log('\nExiting...')
+        engine.dispose()
+        process.exit(0)
     })
 
 }
@@ -127,12 +137,6 @@ async function main() {
         console.error(colors.red(err))
         console.error(err.stack)
     }
-
-    process.on('SIGINT', () => {
-        console.log('\nExiting...')
-        engine.dispose()
-        process.exit(0)
-    })
 
 }
 

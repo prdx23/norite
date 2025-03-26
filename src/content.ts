@@ -5,6 +5,16 @@ import * as np from 'node:path'
 import { MarkdownEngine } from './markdown'
 import { TemplateEngine } from './template'
 
+import { VFile } from 'vfile'
+import { type Root } from 'hast'
+import { h } from 'hastscript'
+import { visit } from 'unist-util-visit'
+import { unified } from 'unified'
+import { reporter } from 'vfile-reporter'
+import rehypeParse from 'rehype-parse'
+import rehypeFormat from 'rehype-format'
+import rehypeStringify from 'rehype-stringify'
+
 
 
 type ContentNodeType = 'page' | 'asset'
@@ -41,7 +51,9 @@ export class ContentNode {
     }
 
 
-    async transform(mdEngine: MarkdownEngine, templateEngine: TemplateEngine) {
+    async transform(opts: {
+        mdEngine: MarkdownEngine, templateEngine: TemplateEngine, dev: boolean
+    }) {
 
         if (this.type != 'page') { return }
 
@@ -60,7 +72,7 @@ export class ContentNode {
         }
 
         if (np.extname(this.path) == '.md') {
-            const result = await mdEngine.parse(text)
+            const result = await opts.mdEngine.parse(text)
             parsed = result.content
             frontmatter = {
                 template: '',
@@ -68,9 +80,38 @@ export class ContentNode {
             }
         }
 
-        this.content = templateEngine.render('Test', {
+        const unprocessedHtml = opts.templateEngine.render('Test', {
             content: parsed, frontmatter, slug: this.slug
         })
+
+        const rehypeNorite = (opts: { filename: string, dev: boolean }) => {
+            return function (tree: Root) {
+
+                tree.children.unshift({ type: 'text', value: '\n' })
+                tree.children.unshift({ type: 'doctype' })
+
+                if (!opts.dev) { return }
+
+                visit(tree, 'element', (node) => {
+                    if (node.tagName === 'body') {
+                        node.children.push(h('script', { src: opts.filename }))
+                    }
+
+                })
+            }
+        }
+
+        const html = await unified()
+            .use(rehypeParse)
+            .use(rehypeNorite, {filename: '/norite-reload.js', dev: opts.dev})
+            .use(rehypeFormat, { indent: 4 })
+            .use(rehypeStringify)
+            .process(new VFile({ value: unprocessedHtml }))
+
+        const report = reporter(html, { silent: true })
+        if (report) { console.error(report) }
+
+        this.content = String(html)
 
     }
 

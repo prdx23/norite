@@ -55,11 +55,15 @@ export class Engine {
         // }
     }
 
-    async transform() {
+    async transform(opts: { dev: boolean }) {
         const tasks = []
         for (const node of this.nodes) {
             if (node.type == 'asset') { continue }
-            tasks.push(node.transform(this.markdownEngine, this.templateEngine))
+            tasks.push(node.transform({
+                dev: opts.dev,
+                mdEngine: this.markdownEngine,
+                templateEngine: this.templateEngine
+            }))
         }
         await Promise.all(tasks)
     }
