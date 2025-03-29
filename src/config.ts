@@ -6,6 +6,15 @@ import Module from 'node:module'
 import colors from 'yoctocolors'
 
 
+export type MarkdownOpts = {
+    enableSmartypants: boolean,
+    enableGfm: boolean,
+    enableSyntaxHighlighting: boolean,
+    remarkPlugins: any[],
+    rehypePlugins: any[],
+}
+
+
 export type Config = {
 
     origin: string,
@@ -13,6 +22,8 @@ export type Config = {
     contentDir: string,
     templatesDir: string,
     outputDir: string,
+
+    markdown: MarkdownOpts,
 
     server: {
         host: string,
@@ -33,6 +44,14 @@ const defaultConfig: Config = {
     contentDir: 'src/content',
     templatesDir: 'src/templates',
     outputDir: 'dist',
+
+    markdown: {
+        enableSmartypants: true,
+        enableGfm: true,
+        enableSyntaxHighlighting: true,
+        remarkPlugins: [],
+        rehypePlugins: [],
+    },
 
     server: {
         host: 'localhost',
@@ -61,9 +80,17 @@ export async function loadConfig() {
     const configModule = require(np.resolve('./norite.config.js'))
 
     const config = Object.assign(
+        {},
         defaultConfig,
         configModule.default ?? {},
     )
+    for (const key of ['server', 'markdown', 'internal']) {
+        config[key] = Object.assign(
+            {},
+            defaultConfig[key as keyof Config],
+            configModule.default[key],
+        )
+    }
 
     const args = process.argv.slice(3)
     const flags = Object.fromEntries(args

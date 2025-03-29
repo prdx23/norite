@@ -49,7 +49,7 @@ export class Engine {
         return new Engine(
             config,
             mode,
-            new MarkdownProcessor(),
+            new MarkdownProcessor(config.markdown),
             new HtmlProcessor(mode),
             await TemplateEngine.new({
                 sourceDir: config.templatesDir,

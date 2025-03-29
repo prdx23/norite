@@ -17,7 +17,10 @@ import rehypeFormat from 'rehype-format'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import remarkSmartypants from 'remark-smartypants'
+import remarkPrism from 'remark-prism'
 import rehypeParse from 'rehype-parse'
+
+import { MarkdownOpts } from './config'
 
 
 
@@ -26,7 +29,7 @@ export class MarkdownProcessor {
 
     processor: UnifiedProcessor<any, any, any, any, any>
 
-    constructor() {
+    constructor(opts: MarkdownOpts) {
         const remarkParseFrontmatterYAML = () => {
             return function (tree: MdRoot, file: VFile) {
                 visit(tree, 'yaml', (node) => {
@@ -38,11 +41,41 @@ export class MarkdownProcessor {
             .use(remarkParse)
             .use(remarkFrontmatter)
             .use(remarkParseFrontmatterYAML)
-            .use(remarkSmartypants)
-            .use(remarkGfm)
+
+        if (opts.enableSmartypants) {
+            this.processor.use(remarkSmartypants)
+        }
+
+        if (opts.enableGfm) {
+            this.processor.use(remarkGfm)
+        }
+
+        if (opts.enableSyntaxHighlighting) {
+            this.processor.use(remarkPrism)
+        }
+
+        for (const plugin of opts.remarkPlugins) {
+            if (plugin[0] && plugin[1]) {
+                this.processor.use(plugin[0], plugin[1])
+            } else {
+                this.processor.use(plugin)
+            }
+        }
+
+        this.processor
             .use(remarkRehype, { allowDangerousHtml: true })
+
+        for (const plugin of opts.rehypePlugins) {
+            if (plugin[0] && plugin[1]) {
+                this.processor.use(plugin[0], plugin[1])
+            } else {
+                this.processor.use(plugin)
+            }
+        }
+
+        this.processor
             .use(rehypeRaw)
-            .use(rehypeStringify)
+            .use(rehypeStringify, { allowDangerousHtml: true })
     }
 
     async parse(text: string): Promise<{ content: string, frontmatter: any }> {
