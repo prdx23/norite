@@ -12,7 +12,12 @@ export default defineConfig({
 
     format: ['esm'],
     clean: true,
-    dts: true,
+
+    dts: {
+        // entry: ['src/main.ts', 'src/jsx-runtime.ts'],
+        entry: ['src/jsx-runtime.ts'],
+    },
+
     // sourcemap: "inline",
 
     watch: 'src/',

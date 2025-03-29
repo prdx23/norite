@@ -8,6 +8,8 @@ import colors from 'yoctocolors'
 
 export type Config = {
 
+    origin: string,
+
     contentDir: string,
     templatesDir: string,
     outputDir: string,
@@ -25,6 +27,8 @@ export type Config = {
 
 
 const defaultConfig: Config = {
+
+    origin: '',
 
     contentDir: 'src/content',
     templatesDir: 'src/templates',

@@ -5,6 +5,9 @@ import * as np from 'node:path'
 import { MarkdownProcessor, HtmlProcessor } from './processors'
 import { TemplateEngine } from './template'
 
+import { Context } from 'norite'
+import { Engine } from './engine'
+
 
 
 type ContentNodeType = 'page' | 'asset'
@@ -13,16 +16,18 @@ export class ContentNode {
 
     type: ContentNodeType
     slug: string
-    path: string
-    _sourceDir: string
+    _path: string
+    _sourcePath: string
     _outputPath: string
 
+    frontmatter: any = { template: '' }
     content: string = ''
+    html: string = ''
 
     constructor(type: ContentNodeType, path: string, sourceDir: string) {
         this.type = type
-        this.path = path
-        this._sourceDir = sourceDir
+        this._path = path
+        this._sourcePath = np.join(sourceDir, path)
         this._outputPath = path
         this.slug = np.join('/', path)
 
@@ -41,42 +46,36 @@ export class ContentNode {
     }
 
 
-    async transform(opts: {
-        markdownProcessor: MarkdownProcessor,
-        htmlProcessor: HtmlProcessor,
-        templateEngine: TemplateEngine,
-    }) {
+    async transform(engine: Engine) {
 
         if (this.type != 'page') { return }
 
-        const text = await fs.readFile(
-            np.join(this._sourceDir, this.path), {encoding: 'utf8'}
+        const text = await fs.readFile(this._sourcePath, {encoding: 'utf8'})
+
+        if (np.basename(this._sourcePath) == 'index.json') {
+            Object.assign(this.frontmatter, JSON.parse(text))
+        }
+
+        if (np.extname(this._sourcePath) == '.md') {
+            const result = await engine.markdownProcessor.parse(text)
+            this.content = result.content
+            Object.assign(this.frontmatter, result.frontmatter)
+        }
+
+        const context: Context = {
+            content: this.content,
+            frontmatter: this.frontmatter,
+            meta: {
+                slug: this.slug,
+                origin: engine.config.origin,
+            },
+            nodes: engine.nodes,
+        }
+        const unprocessedHtml = await engine.templateEngine.render(
+            this.frontmatter.template, context
         )
 
-        let parsed = ''
-        let frontmatter = {}
-
-        if (np.basename(this.path) == 'index.json') {
-            frontmatter = {
-                template: '',
-                ...JSON.parse(text)
-            }
-        }
-
-        if (np.extname(this.path) == '.md') {
-            const result = await opts.markdownProcessor.parse(text)
-            parsed = result.content
-            frontmatter = {
-                template: '',
-                ...result.frontmatter
-            }
-        }
-
-        const unprocessedHtml = opts.templateEngine.render('Test', {
-            content: parsed, frontmatter, slug: this.slug
-        })
-
-        this.content = await opts.htmlProcessor.parse(unprocessedHtml)
+        this.html = await engine.htmlProcessor.parse(unprocessedHtml)
     }
 
 
@@ -91,20 +90,14 @@ export class ContentNode {
 
         if (this.type == 'asset') {
             if (opts.link) {
-                await fs.symlink(
-                    np.resolve(np.join(this._sourceDir, this.path)),
-                    outPath
-                )
+                await fs.symlink(np.resolve(this._sourcePath), outPath)
             } else {
-                await fs.cp(
-                    np.join(this._sourceDir, this.path),
-                    outPath
-                )
+                await fs.cp(this._sourcePath, outPath)
             }
         }
 
         if (this.type == 'page') {
-            await fs.writeFile(outPath, this.content)
+            await fs.writeFile(outPath, this.html)
         }
 
     }
@@ -160,8 +153,8 @@ export async function loadDirTree(
         for (let j = i + 1; j <= nodes.length - 1; j++) {
             if (nodes[i].slug == nodes[j].slug) {
                 throw new Error(
-                    `both '${np.join(opts.sourceDir, nodes[i].path)}'` +
-                    ` and '${np.join(opts.sourceDir, nodes[j].path)}'` +
+                    `both '${np.join(opts.sourceDir, nodes[i]._path)}'` +
+                    ` and '${np.join(opts.sourceDir, nodes[j]._path)}'` +
                     ` map to same output file`
                 )
             }

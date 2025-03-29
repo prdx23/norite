@@ -3,26 +3,26 @@
 
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
-import Module from 'node:module'
+// import Module from 'node:module'
 
 import { noriteBundler } from './plugins/norite-bundler'
 
 import * as esbuild from 'esbuild'
 import { render } from 'preact-render-to-string'
-import { Context } from './main'
+import { Context } from 'norite'
 // import { render } from 'preact-render-to-string/jsx'
 
 
 
 export class TemplateEngine {
 
-    templates: Record<string, Function> = {}
+    templates: Record<string, {path: string, render?: Function}> = {}
     noDefaultImportFiles: string[] = []
 
     _sourceDir: string
     _cacheDir: string
     _esbuildContext: esbuild.BuildContext<any>
-    _require = Module.createRequire(import.meta.url)
+    // _require = Module.createRequire(import.meta.url)
 
     static templateDir: string = 'templates'
     static bundleDir: string = 'bundle'
@@ -84,11 +84,11 @@ export class TemplateEngine {
 
         await fs.mkdir(this._cacheDir, { recursive: true })
 
-        for (const key of Object.keys(this._require.cache)) {
-            if (key.includes(this._cacheDir)) {
-                delete this._require.cache[key]
-            }
-        }
+        // for (const key of Object.keys(this._require.cache)) {
+        //     if (key.includes(this._cacheDir)) {
+        //         delete this._require.cache[key]
+        //     }
+        // }
 
         this.templates = {}
         this.noDefaultImportFiles = []
@@ -96,9 +96,9 @@ export class TemplateEngine {
         const result = await this._esbuildContext.rebuild()
 
         for (const [path, obj] of Object.entries(result.metafile!.outputs)) {
-            const name = np.basename(
-                path.replace(`${this._cacheDir}/`, ''), np.extname(path)
-            )
+            const name = path
+                .replace(`${this._cacheDir}/`, '')
+                .replace(np.extname(path), '')
 
             const ext = np.extname(obj.entryPoint ?? '')
             if (ext != '.tsx' && ext != '.jsx') { continue }
@@ -108,16 +108,22 @@ export class TemplateEngine {
                 continue
             }
 
-            const fullpath = np.resolve(path)
-            this.templates[name] = this._require(fullpath).default
+            const fullpath = `${np.resolve(path)}?d=${Date.now()}`
+            // WARN: temporary workaround
+            // causes small memory leak in dev mode as cache is never cleared
+            // https://github.com/nodejs/node/issues/49442
+            // https://nodejs.org/api/vm.html#class-vmscript
+
+            // this.templates[name] = this._require(fullpath).default
+            // const module = await import(fullpath)
+            // this.templates[name] = module.default
+
+            this.templates[name] = { path: fullpath }
         }
 
     }
 
-    render(
-        templateName: string,
-        opts: { content: string, frontmatter: any, slug: string }
-    ): string {
+    async render(templateName: string, context: Context): Promise<string> {
 
         if (this.noDefaultImportFiles.includes(templateName)) {
             throw new Error(
@@ -130,22 +136,19 @@ export class TemplateEngine {
             throw new Error(`template '${templateName}' not found`)
         }
 
-        if (typeof this.templates[templateName] != 'function') {
+        if (!this.templates[templateName].render) {
+            const module = await import(this.templates[templateName].path)
+            this.templates[templateName].render = module.default
+        }
+
+        if (typeof this.templates[templateName].render != 'function') {
             throw new Error(
                 `default export of '${templateName}' is not a function, ` +
                 'export a function that returns JSX or a string'
             )
         }
 
-        const ctx: Context = {
-            content: opts.content,
-            frontmatter: opts.frontmatter,
-            meta: {
-                slug: opts.slug,
-                origin: '',
-            }
-        }
-        const output = this.templates[templateName](ctx)
+        const output = this.templates[templateName].render(context)
 
         if (typeof output == 'string') { return output }
         return render(output)

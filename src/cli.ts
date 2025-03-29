@@ -45,7 +45,7 @@ async function main() {
 
     } catch(err: any) {
         console.error(colors.red(err))
-        console.error(err.stack)
+        // console.error(err.stack)
     }
 
 }

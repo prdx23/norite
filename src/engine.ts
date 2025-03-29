@@ -85,11 +85,7 @@ export class Engine {
         const tasks = []
         for (const node of this.nodes) {
             if (node.type == 'asset') { continue }
-            tasks.push(node.transform({
-                markdownProcessor: this.markdownProcessor,
-                htmlProcessor: this.htmlProcessor,
-                templateEngine: this.templateEngine
-            }))
+            tasks.push(node.transform(this))
         }
         await Promise.all(tasks)
     }
@@ -127,16 +123,23 @@ export class Engine {
     async _run(level: BuildLevel) {
         console.time('build')
 
-        if (level == 'full') {
-            await this.templateEngine.parse()
-        }
+        try {
 
-        if (level == 'full' || level == 'content') {
-            await this._loadNodes()
-        }
+            if (level == 'full') {
+                await this.templateEngine.parse()
+            }
 
-        await this._transformNodes()
-        await this._buildNodes()
+            if (level == 'full' || level == 'content') {
+                await this._loadNodes()
+            }
+
+            await this._transformNodes()
+            await this._buildNodes()
+
+        } catch(err: any) {
+            console.error(colors.red(err))
+            console.error(err.stack)
+        }
 
         console.timeEnd('build')
         console.log()
@@ -167,7 +170,12 @@ export class Engine {
 
             isProcessing = true
             while (queue.length > 0) {
-                await this._run(queue.shift()!)
+                if (queue.length > 4) {
+                    queue.splice(0, queue.length)
+                    await this._run('full')
+                } else {
+                    await this._run(queue.shift()!)
+                }
                 broadcastReload()
             }
             isProcessing = false

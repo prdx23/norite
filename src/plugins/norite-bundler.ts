@@ -73,6 +73,7 @@ export function noriteBundler(
             outbase: outBase,
             outdir: outDir,
             assetNames: `${bundleDir}/[ext]/[name]-[hash]`,
+            entryNames: `${bundleDir}/[ext]/[name]-[hash]`,
             format: 'esm',
             bundle: true,
             metafile: true,
@@ -83,18 +84,18 @@ export function noriteBundler(
             plugins: [noritePostcss()],
         })
 
-        let contents
+        let bundlePath
         const originalPath = args.pluginData.norite.originalPath ?? ''
         for (const [path, obj] of Object.entries(result.metafile.outputs)) {
             if (obj.entryPoint && np.resolve(obj.entryPoint) == originalPath) {
-                contents = await fs.readFile(path, 'utf8')
+                bundlePath = path.replace(outDir, '')
                 break
             }
         }
 
         return {
-            contents: contents,
-            loader: 'file',
+            contents: `export default '${bundlePath}'`,
+            loader: 'js',
             // resolveDir: np.dirname(args.path),
         }
     }

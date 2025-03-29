@@ -7,17 +7,17 @@
     "files": [
         "dist"
     ],
-    "types": [
-        "dist/jsx-runtime.d.js"
-    ],
     "exports": {
-        ".": "./dist/main.js",
+        ".": {
+            "types": "./src/globals.d.ts",
+            "default": "./dist/main.js"
+        },
         "./jsx-runtime": "./dist/jsx-runtime.js",
         "./jsx-runtime-dev": "./dist/jsx-runtime.js"
     },
     "scripts": {
         "dev": "tsup --watch",
-        "build": "tsc && tsup"
+        "build": "tsc && tsup && cp src/globals.d.ts dist/globals.d.ts"
     },
     "devDependencies": {
         "@types/connect": "^3.4.38",
