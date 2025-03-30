@@ -2,8 +2,7 @@
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
 
-import { MarkdownProcessor, HtmlProcessor } from './processors'
-import { TemplateEngine } from './template'
+import { HtmlProcessor } from './processors'
 
 import { Context } from 'norite'
 import { Engine } from './engine'
@@ -71,11 +70,23 @@ export class ContentNode {
             },
             nodes: engine.nodes,
         }
-        const unprocessedHtml = await engine.templateEngine.render(
+        let unprocessedHtml = await engine.templateEngine.render(
             this.frontmatter.template, context
         )
 
-        this.html = await engine.htmlProcessor.parse(unprocessedHtml)
+        if (!unprocessedHtml.startsWith('<!DOCTYPE html>')) {
+            unprocessedHtml = `<!DOCTYPE html>\n${unprocessedHtml}`
+        }
+
+        if (engine.mode == 'dev') {
+            this.html = unprocessedHtml.replace(
+                '</body>',
+                `<script src='/${HtmlProcessor.scriptName}'></script>\n</body>`
+            )
+        } else {
+            this.html = await engine.htmlProcessor.parse(unprocessedHtml)
+        }
+
     }
 
 

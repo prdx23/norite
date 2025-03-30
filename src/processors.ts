@@ -1,13 +1,14 @@
 
 
 import { unified, type Processor as UnifiedProcessor } from 'unified'
-import { visit } from 'unist-util-visit'
+import { visit, EXIT, CONTINUE } from 'unist-util-visit'
 import { reporter } from 'vfile-reporter'
 import { VFile } from 'vfile'
 import { type Root as MdRoot } from 'mdast'
-import { type Root as HRoot } from 'hast'
+import { ElementContent, type Root as HRoot } from 'hast'
 import { h } from 'hastscript'
 import yaml from 'yaml'
+import {refractor} from 'refractor/all'
 
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
@@ -17,7 +18,6 @@ import rehypeFormat from 'rehype-format'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import remarkSmartypants from 'remark-smartypants'
-import remarkPrism from 'remark-prism'
 import rehypeParse from 'rehype-parse'
 
 import { MarkdownOpts } from './config'
@@ -30,13 +30,61 @@ export class MarkdownProcessor {
     processor: UnifiedProcessor<any, any, any, any, any>
 
     constructor(opts: MarkdownOpts) {
+
         const remarkParseFrontmatterYAML = () => {
             return function (tree: MdRoot, file: VFile) {
                 visit(tree, 'yaml', (node) => {
                     file.data.matter = yaml.parse(node.value)
+                    return EXIT
                 })
             }
         }
+
+        const rehypeRefractor = () => {
+            return function (tree: HRoot) {
+                visit(tree, {tagName: 'code'}, (node, i, parent) => {
+
+                    if (
+                        !parent ||
+                        parent.type == 'root' ||
+                        parent.tagName != 'pre' ||
+                        node.children.length != 1 ||
+                        node.children[0].type != 'text'
+                    ) {
+                        return CONTINUE
+                    }
+
+
+                    const className = node.properties.className
+                    if (!(
+                        className &&
+                        typeof className == 'object' &&
+                        typeof className[0] == 'string'
+                    )) {
+                        node.properties.className = [ 'language-text' ]
+                        parent.properties.className = [ 'language-text' ]
+                        return CONTINUE
+                    }
+
+
+                    const lang = className[0].replace('language-', '')
+                    node.properties.className = [ `language-${lang}` ]
+                    parent.properties.className = [ `language-${lang}` ]
+
+                    const code = refractor.highlight(
+                        node.children[0].value, lang
+                    )
+
+                    // node.children = []
+                    node.children = code.children as ElementContent[]
+
+                    return CONTINUE
+                })
+
+            }
+        }
+
+
         this.processor = unified()
             .use(remarkParse)
             .use(remarkFrontmatter)
@@ -48,10 +96,6 @@ export class MarkdownProcessor {
 
         if (opts.enableGfm) {
             this.processor.use(remarkGfm)
-        }
-
-        if (opts.enableSyntaxHighlighting) {
-            this.processor.use(remarkPrism)
         }
 
         for (const plugin of opts.remarkPlugins) {
@@ -71,6 +115,10 @@ export class MarkdownProcessor {
             } else {
                 this.processor.use(plugin)
             }
+        }
+
+        if (opts.enableSyntaxHighlighting) {
+            this.processor.use(rehypeRefractor)
         }
 
         this.processor
@@ -105,26 +153,25 @@ export class HtmlProcessor {
 
     constructor(mode: 'dev' | 'build') {
 
-        const rehypeAddDoctype = () => {
-            return function (tree: HRoot) {
-                tree.children.unshift({ type: 'text', value: '\n' })
-                tree.children.unshift({ type: 'doctype' })
-            }
-        }
+        // const rehypeAddDoctype = () => {
+        //     return function (tree: HRoot) {
+        //         tree.children.unshift({ type: 'text', value: '\n' })
+        //         tree.children.unshift({ type: 'doctype' })
+        //     }
+        // }
 
         const rehypeInjectScript = (opts: { filename: string }) => {
             return function (tree: HRoot) {
-                visit(tree, 'element', (node) => {
-                    if (node.tagName === 'body') {
-                        node.children.push(h('script', { src: opts.filename }))
-                    }
+                visit(tree, { tagName: 'body' }, (node) => {
+                    node.children.push(h('script', { src: opts.filename }))
+                    return EXIT
                 })
             }
         }
 
         this.processor = unified()
             .use(rehypeParse)
-            .use(rehypeAddDoctype)
+            // .use(rehypeAddDoctype)
 
         if (mode == 'dev') {
             this.processor.use(
