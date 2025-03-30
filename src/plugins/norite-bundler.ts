@@ -10,6 +10,9 @@ export function noriteBundler(
     outBase: string, outDir: string, bundleDir: string,
 ): esbuild.Plugin {
 
+    const contextCache: Record<string, esbuild.BuildContext> = {}
+    const noritePostcssPlugin = noritePostcss()
+
     async function onResolve(
         args: esbuild.OnResolveArgs, build: esbuild.PluginBuild
     ): Promise<esbuild.OnResolveResult> {
@@ -55,38 +58,43 @@ export function noriteBundler(
         args: esbuild.OnLoadArgs
     ): Promise<esbuild.OnLoadResult> {
 
-        const filetypes = [
-            // images
-            'apng', 'bmp', 'png', 'jpg', 'jpeg', 'jfif', 'pjpeg',
-            'pjp', 'gif', 'svg', 'ico', 'webp', 'avif', 'cur', 'jxl',
-            // media
-            'mp4', 'webm', 'ogg', 'mp3', 'wav', 'flac', 'aac',
-            'opus', 'mov', 'm4a', 'vtt',
-            // fonts
-            'woff', 'woff2', 'eot', 'ttf', 'otf',
-            // other
-            'webmanifest', 'pdf', 'txt', 'vert', 'frag', 'glsl', 'comp',
-        ]
+        if (!contextCache[args.path]) {
+            const filetypes = [
+                // images
+                'apng', 'bmp', 'png', 'jpg', 'jpeg', 'jfif', 'pjpeg',
+                'pjp', 'gif', 'svg', 'ico', 'webp', 'avif', 'cur', 'jxl',
+                // media
+                'mp4', 'webm', 'ogg', 'mp3', 'wav', 'flac', 'aac',
+                'opus', 'mov', 'm4a', 'vtt',
+                // fonts
+                'woff', 'woff2', 'eot', 'ttf', 'otf',
+                // other
+                'webmanifest', 'pdf', 'txt', 'vert', 'frag', 'glsl', 'comp',
+            ]
 
-        const result = await esbuild.build({
-            entryPoints: [args.path],
-            outbase: outBase,
-            outdir: outDir,
-            assetNames: `${bundleDir}/[ext]/[name]-[hash]`,
-            entryNames: `${bundleDir}/[ext]/[name]-[hash]`,
-            format: 'esm',
-            bundle: true,
-            metafile: true,
-            // write: false,
-            loader: Object.fromEntries(
-                filetypes.map(x => [`.${x}`, 'file' as esbuild.Loader])
-            ),
-            plugins: [noritePostcss()],
-        })
+            contextCache[args.path] = await esbuild.context({
+                entryPoints: [args.path],
+                outbase: outBase,
+                outdir: outDir,
+                assetNames: `${bundleDir}/[ext]/[name]-[hash]`,
+                entryNames: `${bundleDir}/[ext]/[name]-[hash]`,
+                format: 'esm',
+                bundle: true,
+                metafile: true,
+                // write: false,
+                loader: Object.fromEntries(
+                    filetypes.map(x => [`.${x}`, 'file' as esbuild.Loader])
+                ),
+                // plugins: [noritePostcss()],
+                plugins: [noritePostcssPlugin],
+            })
+        }
+
+        const result = await contextCache[args.path].rebuild()
 
         let bundlePath
         const originalPath = args.pluginData.norite.originalPath ?? ''
-        for (const [path, obj] of Object.entries(result.metafile.outputs)) {
+        for (const [path, obj] of Object.entries(result.metafile!.outputs)) {
             if (obj.entryPoint && np.resolve(obj.entryPoint) == originalPath) {
                 bundlePath = path.replace(outDir, '')
                 break

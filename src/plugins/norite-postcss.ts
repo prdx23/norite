@@ -38,20 +38,20 @@ export function noritePostcss(): esbuild.Plugin {
                         to: args.path,
                     })
 
-                const watchFiles = []
-                const watchDirs = []
-                for (const message of result.messages) {
-                    if (message.type === 'dependency') {
-                        watchFiles.push(message.file)
-                    } else if (message.type === 'dir-dependency') {
-                        const dir = message.dir
-                        if (message.glob) {
-                            watchDirs.push(np.join(dir, message.glob))
-                        } else {
-                            watchDirs.push(np.join(dir, '**', '*'))
-                        }
-                    }
-                }
+                // const watchFiles = []
+                // const watchDirs = []
+                // for (const message of result.messages) {
+                //     if (message.type === 'dependency') {
+                //         watchFiles.push(message.file)
+                //     } else if (message.type === 'dir-dependency') {
+                //         const dir = message.dir
+                //         if (message.glob) {
+                //             watchDirs.push(np.join(dir, message.glob))
+                //         } else {
+                //             watchDirs.push(np.join(dir, '**', '*'))
+                //         }
+                //     }
+                // }
 
                 const warnings = result.warnings().map(warn => {
                     return {
@@ -68,8 +68,8 @@ export function noritePostcss(): esbuild.Plugin {
                     contents: result.css,
                     loader: 'css',
                     warnings,
-                    watchFiles,
-                    watchDirs,
+                    // watchFiles,
+                    // watchDirs,
                 }
 
             })
