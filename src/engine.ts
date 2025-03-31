@@ -2,6 +2,7 @@
 
 import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
+import assert from 'node:assert'
 
 import { type Config } from './config'
 import { type ContentNode, loadDirTree } from './content'
@@ -81,11 +82,23 @@ export class Engine {
     }
 
 
-    async _transformNodes() {
+    async _transformAndRenderNodes() {
         const tasks = []
         for (const node of this.nodes) {
-            if (node.type == 'asset') { continue }
             tasks.push(node.transform(this))
+        }
+        await Promise.all(tasks)
+
+        for (const node of this.nodes) {
+            assert(
+                node._stage != 'loaded',
+                'attempt to render nodes before all nodes transformed'
+            )
+        }
+
+        tasks.splice(0, tasks.length)
+        for (const node of this.nodes) {
+            tasks.push(node.render(this))
         }
         await Promise.all(tasks)
     }
@@ -107,6 +120,13 @@ export class Engine {
         } catch { }
 
         await fs.mkdir(opts.outputDir, { recursive: true })
+
+        for (const node of this.nodes) {
+            assert(
+                node._stage != 'loaded' && node._stage != 'transformed',
+                'attempt to build nodes before all nodes rendered'
+            )
+        }
 
         const tasks = []
         for (const node of this.nodes) {
@@ -133,12 +153,12 @@ export class Engine {
                 await this._loadNodes()
             }
 
-            await this._transformNodes()
+            await this._transformAndRenderNodes()
             await this._buildNodes()
 
         } catch(err: any) {
             console.error(colors.red(err))
-            console.error(err.stack)
+            // console.error(err.stack)
         }
 
         console.timeEnd('build')

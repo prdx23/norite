@@ -18,6 +18,7 @@ export class ContentNode {
     _path: string
     _sourcePath: string
     _outputPath: string
+    _stage: 'loaded' | 'transformed' | 'rendered' | 'built'
 
     frontmatter: any = { template: '' }
     content: string = ''
@@ -32,7 +33,14 @@ export class ContentNode {
 
         if (type == 'page') {
 
-            const filename = `${np.basename(path, np.extname(path))}.html`
+            let filename = `${np.basename(path, np.extname(path))}.html`
+
+            if (path.startsWith('[') && path.endsWith('].json')) {
+                filename = np.basename(path, np.extname(path))
+                    .replace('[', '')
+                    .replace(']', '')
+            }
+
             this._outputPath = np.join(np.dirname(path), filename)
 
             if (filename == 'index.html') {
@@ -42,23 +50,42 @@ export class ContentNode {
             }
         }
 
+        this._stage = 'loaded'
     }
 
 
     async transform(engine: Engine) {
 
-        if (this.type != 'page') { return }
+        this.frontmatter = { template: '' }
+        this.content = ''
+        this.html = ''
+
+        if (this.type != 'page') {
+            this._stage = 'transformed'
+            return
+        }
 
         const text = await fs.readFile(this._sourcePath, {encoding: 'utf8'})
+        const ext = np.extname(this._sourcePath)
 
-        if (np.basename(this._sourcePath) == 'index.json') {
+        if (ext == '.json') {
             Object.assign(this.frontmatter, JSON.parse(text))
         }
 
-        if (np.extname(this._sourcePath) == '.md') {
+        if (ext == '.md') {
             const result = await engine.markdownProcessor.parse(text)
             this.content = result.content
             Object.assign(this.frontmatter, result.frontmatter)
+        }
+
+        this._stage = 'transformed'
+    }
+
+    async render(engine: Engine) {
+
+        if (this.type != 'page') {
+            this._stage = 'rendered'
+            return
         }
 
         const context: Context = {
@@ -70,23 +97,30 @@ export class ContentNode {
             },
             nodes: engine.nodes,
         }
-        let unprocessedHtml = await engine.templateEngine.render(
+        let renderedText = await engine.templateEngine.render(
             this.frontmatter.template, context
         )
 
-        if (!unprocessedHtml.startsWith('<!DOCTYPE html>')) {
-            unprocessedHtml = `<!DOCTYPE html>\n${unprocessedHtml}`
+        if (np.extname(this._outputPath) != '.html') {
+            this.html = renderedText
+            this._stage = 'rendered'
+            return
+        }
+
+        if (!renderedText.startsWith('<!DOCTYPE html>')) {
+            renderedText = `<!DOCTYPE html>\n${renderedText}`
         }
 
         if (engine.mode == 'dev') {
-            this.html = unprocessedHtml.replace(
+            this.html = renderedText.replace(
                 '</body>',
                 `<script src='/${HtmlProcessor.scriptName}'></script>\n</body>`
             )
         } else {
-            this.html = await engine.htmlProcessor.parse(unprocessedHtml)
+            this.html = await engine.htmlProcessor.parse(renderedText)
         }
 
+        this._stage = 'rendered'
     }
 
 
@@ -111,6 +145,7 @@ export class ContentNode {
             await fs.writeFile(outPath, this.html)
         }
 
+        this._stage = 'built'
     }
 
 }
@@ -119,7 +154,11 @@ export class ContentNode {
 
 function detectNodeType(path: string): ContentNodeType {
     const name = np.basename(path)
-    if (name == 'index.json' || np.extname(name) == '.md') {
+    if (
+        name == 'index.json' ||
+        np.extname(name) == '.md' ||
+        (name.startsWith('[') && name.endsWith('].json'))
+    ) {
         return 'page'
     }
     return 'asset'
