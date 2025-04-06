@@ -8,9 +8,10 @@ import { noritePostcss } from './norite-postcss'
 
 export function noriteBundler(
     outBase: string, outDir: string, bundleDir: string,
+    contextCache: Record<string, esbuild.BuildContext>,
 ): esbuild.Plugin {
 
-    const contextCache: Record<string, esbuild.BuildContext> = {}
+    // const contextCache: Record<string, esbuild.BuildContext> = {}
     const noritePostcssPlugin = noritePostcss()
 
     async function onResolve(

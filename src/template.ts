@@ -22,6 +22,7 @@ export class TemplateEngine {
     _sourceDir: string
     _cacheDir: string
     _esbuildContext: esbuild.BuildContext<any>
+    _bundlerContextCache: Record<string, esbuild.BuildContext>
     // _require = Module.createRequire(import.meta.url)
 
     static templateDir: string = 'templates'
@@ -29,15 +30,18 @@ export class TemplateEngine {
 
     constructor(
         ctx: esbuild.BuildContext<any>,
-        opts: { sourceDir: string, cacheDir: string }
+        opts: { sourceDir: string, cacheDir: string },
+        bundlerContextCache: Record<string, esbuild.BuildContext>,
     ) {
         this._esbuildContext = ctx
+        this._bundlerContextCache = bundlerContextCache
         this._sourceDir = opts.sourceDir
         this._cacheDir = opts.cacheDir
     }
 
 
     static async new(opts: { sourceDir: string, cacheDir: string }) {
+        const bundlerContextCache: Record<string, esbuild.BuildContext> = {}
         const ctx = await esbuild.context({
             entryPoints: [
                 // np.join(opts.sourceDir, '/**/*.js'),
@@ -66,12 +70,22 @@ export class TemplateEngine {
 
             plugins: [
                 noriteBundler(
-                    opts.sourceDir, opts.cacheDir, TemplateEngine.bundleDir
+                    opts.sourceDir, opts.cacheDir, TemplateEngine.bundleDir,
+                    bundlerContextCache,
                 ),
             ],
         })
-        return new TemplateEngine(ctx, opts)
+        return new TemplateEngine(ctx, opts, bundlerContextCache)
     }
+
+
+    dispose() {
+        this._esbuildContext.dispose()
+        for (const ctx of Object.values(this._bundlerContextCache)) {
+            ctx.dispose()
+        }
+    }
+
 
     async parse() {
 

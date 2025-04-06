@@ -136,7 +136,7 @@ export class Engine {
     }
 
     _dispose() {
-        this.templateEngine._esbuildContext.dispose()
+        this.templateEngine.dispose()
     }
 
 
