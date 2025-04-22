@@ -1,6 +1,6 @@
 {
     "name": "norite",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "author": "Arsh <hello@glitchcomet.com>",
     "description": "Norite is an experimental static website builder. It transforms a directory of content and it's structure into a static website, using templates written in plain javascript or JSX.",
     "homepage": "https://github.com/prdx23/norite",
@@ -31,6 +31,7 @@
         "norite": "dist/norite.js"
     },
     "files": [
+        "src",
         "dist"
     ],
     "exports": {
@@ -58,6 +59,7 @@
         "connect": "^3.7.0",
         "esbuild": "0.25.0",
         "postcss": "^8.5.3",
+        "postcss-load-config": "^6.0.1",
         "preact": "^10.26.2",
         "preact-render-to-string": "^6.5.13",
         "refractor": "^5.0.0",
