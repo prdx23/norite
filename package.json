@@ -5,17 +5,31 @@
     "description": "Norite is an experimental static website builder. It transforms a directory of content and it's structure into a static website, using templates written in plain javascript or JSX.",
     "homepage": "https://github.com/prdx23/norite",
     "keywords": [
-        "static site generation", "ssg", "template", "website", "blog",
-        "jsx", "markdown", "static site generator", "remark", "rehype",
-        "bundler", "html", "jamstack", "generator", "esbuild"
+        "static site generation",
+        "ssg",
+        "template",
+        "website",
+        "blog",
+        "jsx",
+        "markdown",
+        "static site generator",
+        "remark",
+        "rehype",
+        "bundler",
+        "html",
+        "jamstack",
+        "generator",
+        "esbuild"
     ],
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/prdx23/norite"
+        "url": "git+https://github.com/prdx23/norite.git"
     },
     "type": "module",
-    "bin": "dist/norite.js",
+    "bin": {
+        "norite": "dist/norite.js"
+    },
     "files": [
         "dist"
     ],
