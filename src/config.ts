@@ -17,13 +17,17 @@ export type MarkdownOpts = {
 
 export type Config = {
 
-    origin: string,
+    globals: {
+        [k: string]: any,
+    },
 
     contentDir: string,
     templatesDir: string,
     outputDir: string,
 
     markdown: MarkdownOpts,
+
+    enablePostCSS: boolean,
 
     server: {
         host: string,
@@ -39,7 +43,7 @@ export type Config = {
 
 const defaultConfig: Config = {
 
-    origin: '',
+    globals: {},
 
     contentDir: 'src/content',
     templatesDir: 'src/templates',
@@ -52,6 +56,8 @@ const defaultConfig: Config = {
         remarkPlugins: [],
         rehypePlugins: [],
     },
+
+    enablePostCSS: true,
 
     server: {
         host: 'localhost',
@@ -71,24 +77,20 @@ export async function loadConfig() {
     await fs.access(np.resolve('./norite.config.js')).catch(() => {
         throw new Error(
             colors.red('norite.config.js not found.\n') +
-                colors.yellow(`run 'npx norite init' or create a blank `) +
-                colors.yellow(`in project root to use defaults\n`)
+            colors.yellow(`create a blank norite.config.js `) +
+            colors.yellow(`in project root to use defaults\n`)
         )
     })
 
     const require = Module.createRequire(np.resolve('.'))
-    const configModule = require(np.resolve('./norite.config.js'))
+    const configModule = require(np.resolve('./norite.config.js')).default ?? {}
 
-    const config = Object.assign(
-        {},
-        defaultConfig,
-        configModule.default ?? {},
-    )
-    for (const key of ['server', 'markdown', 'internal']) {
+    const config = Object.assign({}, defaultConfig, configModule)
+    for (const key of ['server', 'markdown', 'globals', 'internal']) {
         config[key] = Object.assign(
             {},
             defaultConfig[key as keyof Config],
-            configModule.default[key],
+            configModule[key],
         )
     }
 

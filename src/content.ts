@@ -91,10 +91,8 @@ export class ContentNode {
         const context: Context = {
             content: this.content,
             frontmatter: this.frontmatter,
-            meta: {
-                slug: this.slug,
-                origin: engine.config.origin,
-            },
+            slug: this.slug,
+            globals: engine.config.globals,
             nodes: engine.nodes,
         }
         let renderedText = await engine.templateEngine.render(

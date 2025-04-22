@@ -1,6 +1,5 @@
 
 import * as fs from 'node:fs/promises'
-import * as np from 'node:path'
 import * as esbuild from 'esbuild'
 import postcss from 'postcss'
 import postcssrc from 'postcss-load-config'

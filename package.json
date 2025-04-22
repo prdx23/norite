@@ -1,7 +1,19 @@
 {
     "name": "norite",
-    "private": true,
-    "version": "0.1.0",
+    "version": "0.2.0",
+    "author": "Arsh <hello@glitchcomet.com>",
+    "description": "Norite is an experimental static website builder. It transforms a directory of content and it's structure into a static website, using templates written in plain javascript or JSX.",
+    "homepage": "https://github.com/prdx23/norite",
+    "keywords": [
+        "static site generation", "ssg", "template", "website", "blog",
+        "jsx", "markdown", "static site generator", "remark", "rehype",
+        "bundler", "html", "jamstack", "generator", "esbuild"
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/prdx23/norite"
+    },
     "type": "module",
     "bin": "dist/norite.js",
     "files": [
@@ -16,7 +28,7 @@
         "./jsx-runtime-dev": "./dist/jsx-runtime.js"
     },
     "scripts": {
-        "dev": "tsup --watch",
+        "dev": "tsup --watch src",
         "build": "tsc && tsup && cp src/globals.d.ts dist/globals.d.ts"
     },
     "devDependencies": {

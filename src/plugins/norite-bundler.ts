@@ -1,5 +1,4 @@
 
-import * as fs from 'node:fs/promises'
 import * as np from 'node:path'
 import * as esbuild from 'esbuild'
 
@@ -7,7 +6,10 @@ import { noritePostcss } from './norite-postcss'
 
 
 export function noriteBundler(
-    outBase: string, outDir: string, bundleDir: string,
+    outBase: string,
+    outDir: string,
+    bundleDir: string,
+    enablePostCSS: boolean,
     contextCache: Record<string, esbuild.BuildContext>,
 ): esbuild.Plugin {
 
@@ -86,8 +88,7 @@ export function noriteBundler(
                 loader: Object.fromEntries(
                     filetypes.map(x => [`.${x}`, 'file' as esbuild.Loader])
                 ),
-                // plugins: [noritePostcss()],
-                plugins: [noritePostcssPlugin],
+                plugins: enablePostCSS ? [noritePostcssPlugin] : [],
             })
         }
 

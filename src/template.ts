@@ -40,7 +40,9 @@ export class TemplateEngine {
     }
 
 
-    static async new(opts: { sourceDir: string, cacheDir: string }) {
+    static async new(
+        opts: { sourceDir: string, cacheDir: string, enablePostCSS: boolean }
+    ) {
         const bundlerContextCache: Record<string, esbuild.BuildContext> = {}
         const ctx = await esbuild.context({
             entryPoints: [
@@ -70,7 +72,10 @@ export class TemplateEngine {
 
             plugins: [
                 noriteBundler(
-                    opts.sourceDir, opts.cacheDir, TemplateEngine.bundleDir,
+                    opts.sourceDir,
+                    opts.cacheDir,
+                    TemplateEngine.bundleDir,
+                    opts.enablePostCSS,
                     bundlerContextCache,
                 ),
             ],

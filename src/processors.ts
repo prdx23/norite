@@ -42,7 +42,7 @@ export class MarkdownProcessor {
 
         const rehypeRefractor = () => {
             return function (tree: HRoot) {
-                visit(tree, {tagName: 'code'}, (node, i, parent) => {
+                visit(tree, {tagName: 'code'}, (node, _, parent) => {
 
                     if (
                         !parent ||

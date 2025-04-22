@@ -22,10 +22,9 @@ declare module 'norite' {
     type Context = {
         content: string,
         frontmatter: any,
-        meta: {
-            origin: string,
-            slug: string,
-            // [k: string]: any,
+        slug: string,
+        globals: {
+            [k: string]: any,
         },
         nodes: {
             type: 'page' | 'asset',

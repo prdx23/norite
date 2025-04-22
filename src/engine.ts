@@ -55,6 +55,7 @@ export class Engine {
             await TemplateEngine.new({
                 sourceDir: config.templatesDir,
                 cacheDir: np.join(config.internal.cacheDir, 'templates'),
+                enablePostCSS: config.enablePostCSS,
             }),
         )
     }
@@ -66,6 +67,13 @@ export class Engine {
             sourceDir: this.config.contentDir,
             initialPath: ''
         })
+
+        if (contentNodes.length == 0) {
+            console.warn(colors.yellow(
+                `warning: content directory '${this.config.contentDir}' ` +
+                `has no files`
+            ))
+        }
 
         const bundleNodes = await loadDirTree({
             sourceDir: np.join(
@@ -174,9 +182,9 @@ export class Engine {
 
     async dev() {
 
-        const broadcastReload = createDevServer(this._devOutputDir, this.config)
-
         await this._run('full')
+
+        const broadcastReload = createDevServer(this._devOutputDir, this.config)
 
         const queue: BuildLevel[] = []
         let isProcessing = false;

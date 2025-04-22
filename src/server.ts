@@ -27,7 +27,7 @@ export function createDevServer(dir: string, config: Config) {
         config.server.port,
         config.server.host,
         () => { console.log(
-            `\nListening on ` +
+            `Listening on ` +
             `${colors.green(config.server.host)}:` +
             `${colors.cyan(config.server.port.toString())}!`
         )}

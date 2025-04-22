@@ -20,7 +20,7 @@ export default defineConfig({
 
     // sourcemap: "inline",
 
-    watch: 'src/',
+    // watch: 'src/',
 
     external: ['postcss-load-config']
 })
