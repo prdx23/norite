@@ -14,6 +14,16 @@ declare module 'bundle:*.css' {
     export default path;
 }
 
+declare module 'url:*' {
+    const path: string;
+    export default path;
+}
+
+declare module 'raw:*' {
+    const contents: string;
+    export default contents;
+}
+
 
 declare module 'norite' {
     import { type ComponentChildren } from 'preact'

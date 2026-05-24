@@ -5,7 +5,7 @@ import {
 } from "./chunk-MKBO26DX.js";
 
 // src/engine.ts
-import * as fs4 from "node:fs/promises";
+import * as fs5 from "node:fs/promises";
 import * as np4 from "node:path";
 import assert from "node:assert";
 
@@ -2600,10 +2600,11 @@ async function loadDirTree(opts) {
 }
 
 // src/template.ts
-import * as fs3 from "node:fs/promises";
+import * as fs4 from "node:fs/promises";
 import * as np3 from "node:path";
 
 // src/plugins/norite-bundler.ts
+import * as fs3 from "node:fs/promises";
 import * as np2 from "node:path";
 import * as esbuild from "esbuild";
 
@@ -2658,10 +2659,10 @@ function noritePostcss() {
 // src/plugins/norite-bundler.ts
 function noriteBundler(outBase, outDir, bundleDir, enablePostCSS, contextCache) {
   const noritePostcssPlugin = noritePostcss();
-  async function onResolve(args, build) {
-    let path = args.path.replace("bundle:", "");
+  async function onResolve(prefix, args, build) {
+    let path = args.path.replace(`${prefix}:`, "");
     const ext = np2.extname(path);
-    if (ext != ".js" && ext != ".ts" && ext != ".css") {
+    if (prefix == "bundle" && ext != ".js" && ext != ".ts" && ext != ".css") {
       return { errors: [{
         text: `filetype '${ext}' not supported in 'bundle:' paths`
       }] };
@@ -2675,7 +2676,7 @@ function noriteBundler(outBase, outDir, bundleDir, enablePostCSS, contextCache) 
       return { errors: result.errors };
     }
     path = result.path;
-    if (ext == ".ts") {
+    if (prefix == "bundle" && ext == ".ts") {
       path = np2.join(
         np2.dirname(result.path),
         `${np2.basename(result.path, ext)}.js`
@@ -2684,72 +2685,13 @@ function noriteBundler(outBase, outDir, bundleDir, enablePostCSS, contextCache) 
     return {
       warnings: result.warnings,
       path,
-      namespace: "norite-bundle",
+      namespace: `norite-${prefix}`,
       pluginData: { norite: { originalPath: result.path } }
-      // external: true,
     };
   }
-  async function onLoad(args) {
+  async function getBundledPath(esbuildOpts, args) {
     if (!contextCache[args.path]) {
-      const filetypes = [
-        // images
-        "apng",
-        "bmp",
-        "png",
-        "jpg",
-        "jpeg",
-        "jfif",
-        "pjpeg",
-        "pjp",
-        "gif",
-        "svg",
-        "ico",
-        "webp",
-        "avif",
-        "cur",
-        "jxl",
-        // media
-        "mp4",
-        "webm",
-        "ogg",
-        "mp3",
-        "wav",
-        "flac",
-        "aac",
-        "opus",
-        "mov",
-        "m4a",
-        "vtt",
-        // fonts
-        "woff",
-        "woff2",
-        "eot",
-        "ttf",
-        "otf",
-        // other
-        "webmanifest",
-        "pdf",
-        "txt",
-        "vert",
-        "frag",
-        "glsl",
-        "comp"
-      ];
-      contextCache[args.path] = await esbuild.context({
-        entryPoints: [args.path],
-        outbase: outBase,
-        outdir: outDir,
-        assetNames: `${bundleDir}/[ext]/[name]-[hash]`,
-        entryNames: `${bundleDir}/[ext]/[name]-[hash]`,
-        format: "esm",
-        bundle: true,
-        metafile: true,
-        // write: false,
-        loader: Object.fromEntries(
-          filetypes.map((x) => [`.${x}`, "file"])
-        ),
-        plugins: enablePostCSS ? [noritePostcssPlugin] : []
-      });
+      contextCache[args.path] = await esbuild.context(esbuildOpts);
     }
     const result = await contextCache[args.path].rebuild();
     let bundlePath;
@@ -2763,22 +2705,111 @@ function noriteBundler(outBase, outDir, bundleDir, enablePostCSS, contextCache) 
     return {
       contents: `export default '${bundlePath}'`,
       loader: "js"
-      // resolveDir: np.dirname(args.path),
     };
+  }
+  async function onLoadBundle(args) {
+    const filetypes = [
+      // images
+      "apng",
+      "bmp",
+      "png",
+      "jpg",
+      "jpeg",
+      "jfif",
+      "pjpeg",
+      "pjp",
+      "gif",
+      "svg",
+      "ico",
+      "webp",
+      "avif",
+      "cur",
+      "jxl",
+      // media
+      "mp4",
+      "webm",
+      "ogg",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "opus",
+      "mov",
+      "m4a",
+      "vtt",
+      // fonts
+      "woff",
+      "woff2",
+      "eot",
+      "ttf",
+      "otf",
+      // other
+      "webmanifest",
+      "pdf",
+      "txt",
+      "vert",
+      "frag",
+      "glsl",
+      "comp"
+    ];
+    return getBundledPath({
+      entryPoints: [args.path],
+      outbase: outBase,
+      outdir: outDir,
+      assetNames: `${bundleDir}/[ext]/[name]-[hash]`,
+      entryNames: `${bundleDir}/[ext]/[name]-[hash]`,
+      format: "esm",
+      bundle: true,
+      metafile: true,
+      loader: Object.fromEntries(
+        filetypes.map((x) => [`.${x}`, "file"])
+      ),
+      plugins: enablePostCSS ? [noritePostcssPlugin] : []
+    }, args);
+  }
+  async function onLoadUrl(args) {
+    const ext = np2.extname(args.path);
+    return getBundledPath({
+      entryPoints: [args.path],
+      outbase: outBase,
+      outdir: outDir,
+      entryNames: `${bundleDir}/[ext]/[name]-[hash]`,
+      metafile: true,
+      loader: { [ext]: "copy" }
+    }, args);
   }
   return {
     name: "norite-bundler",
     setup(build) {
       build.onResolve(
         { filter: /^bundle:.*$/ },
-        async (args) => {
-          return await onResolve(args, build);
-        }
+        (args) => onResolve("bundle", args, build)
       );
       build.onLoad(
         { filter: /^.*$/, namespace: "norite-bundle" },
+        (args) => onLoadBundle(args)
+      );
+      build.onResolve(
+        { filter: /^url:.*$/ },
+        (args) => onResolve("url", args, build)
+      );
+      build.onLoad(
+        { filter: /^.*$/, namespace: "norite-url" },
+        (args) => onLoadUrl(args)
+      );
+      build.onResolve(
+        { filter: /^raw:.*$/ },
+        (args) => onResolve("raw", args, build)
+      );
+      build.onLoad(
+        { filter: /^.*$/, namespace: "norite-raw" },
         async (args) => {
-          return await onLoad(args);
+          const text = await fs3.readFile(args.path, "utf8");
+          return {
+            contents: `export default ${JSON.stringify(text)}`,
+            loader: "js",
+            watchFiles: [args.path]
+          };
         }
       );
     }
@@ -2815,6 +2846,7 @@ var _TemplateEngine = class _TemplateEngine {
       assetNames: `${_TemplateEngine.bundleDir}/[ext]/[name]-[hash]`,
       // chunkNames: 'chunks/[name]-[hash]',
       format: "esm",
+      platform: "node",
       bundle: true,
       metafile: true,
       logOverride: {
@@ -2845,13 +2877,13 @@ var _TemplateEngine = class _TemplateEngine {
     }
   }
   async parse() {
-    await fs3.access(this._sourceDir);
+    await fs4.access(this._sourceDir);
     try {
-      await fs3.access(this._cacheDir);
-      await fs3.rm(this._cacheDir, { recursive: true });
+      await fs4.access(this._cacheDir);
+      await fs4.rm(this._cacheDir, { recursive: true });
     } catch {
     }
-    await fs3.mkdir(this._cacheDir, { recursive: true });
+    await fs4.mkdir(this._cacheDir, { recursive: true });
     this.templates = {};
     this.noDefaultImportFiles = [];
     const result = await this._esbuildContext.rebuild();
@@ -3026,11 +3058,11 @@ var Engine = class _Engine {
       link: false
     };
     try {
-      await fs4.access(opts.outputDir);
-      await fs4.rm(opts.outputDir, { recursive: true });
+      await fs5.access(opts.outputDir);
+      await fs5.rm(opts.outputDir, { recursive: true });
     } catch {
     }
-    await fs4.mkdir(opts.outputDir, { recursive: true });
+    await fs5.mkdir(opts.outputDir, { recursive: true });
     for (const node of this.nodes) {
       assert(
         node._stage != "loaded" && node._stage != "transformed",
@@ -3127,7 +3159,7 @@ var Engine = class _Engine {
 };
 
 // src/config.ts
-import * as fs5 from "fs/promises";
+import * as fs6 from "fs/promises";
 import * as np5 from "node:path";
 import Module from "node:module";
 import colors3 from "yoctocolors";
@@ -3153,7 +3185,7 @@ var defaultConfig = {
   }
 };
 async function loadConfig() {
-  await fs5.access(np5.resolve("./norite.config.js")).catch(() => {
+  await fs6.access(np5.resolve("./norite.config.js")).catch(() => {
     throw new Error(
       colors3.red("norite.config.js not found.\n") + colors3.yellow(`create a blank norite.config.js `) + colors3.yellow(`in project root to use defaults
 `)

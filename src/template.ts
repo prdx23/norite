@@ -57,6 +57,7 @@ export class TemplateEngine {
             // chunkNames: 'chunks/[name]-[hash]',
 
             format: 'esm',
+            platform: 'node',
             bundle: true,
             metafile: true,
             logOverride: {

@@ -52,11 +52,11 @@ Norite includes type definitions, for JSX runtime support add the following in y
 
 
 ## Quick Start
-Refer to the [quick start](https://github.com/prdx23/norite/wiki#quick-start) section in the documentation.
+Refer to the [quick start](https://github.com/prdx23/norite/blob/main/docs.md#quick-start) section in the documentation.
 
 
 ## Documentation
-Documentation for norite is here: [documentation](https://github.com/prdx23/norite/wiki)
+Documentation for norite is here: [documentation](https://github.com/prdx23/norite/blob/main/docs.md)
 
 
 ## License
