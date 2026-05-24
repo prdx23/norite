@@ -15,6 +15,11 @@ export type MarkdownOpts = {
 }
 
 
+export type HtmlOpts = {
+    rehypePlugins: any[],
+}
+
+
 export type Config = {
 
     globals: {
@@ -26,6 +31,8 @@ export type Config = {
     outputDir: string,
 
     markdown: MarkdownOpts,
+
+    html: HtmlOpts,
 
     enablePostCSS: boolean,
 
@@ -54,6 +61,10 @@ const defaultConfig: Config = {
         enableGfm: true,
         enableSyntaxHighlighting: true,
         remarkPlugins: [],
+        rehypePlugins: [],
+    },
+
+    html: {
         rehypePlugins: [],
     },
 
@@ -86,7 +97,7 @@ export async function loadConfig() {
     const configModule = require(np.resolve('./norite.config.js')).default ?? {}
 
     const config = Object.assign({}, defaultConfig, configModule)
-    for (const key of ['server', 'markdown', 'globals', 'internal']) {
+    for (const key of ['server', 'markdown', 'html', 'globals', 'internal']) {
         config[key] = Object.assign(
             {},
             defaultConfig[key as keyof Config],

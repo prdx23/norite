@@ -6,7 +6,6 @@ import { reporter } from 'vfile-reporter'
 import { VFile } from 'vfile'
 import { type Root as MdRoot } from 'mdast'
 import { ElementContent, type Root as HRoot } from 'hast'
-import { h } from 'hastscript'
 import yaml from 'yaml'
 import {refractor} from 'refractor/all'
 
@@ -14,13 +13,12 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import rehypeStringify from 'rehype-stringify'
 import remarkFrontmatter from 'remark-frontmatter'
-import rehypeFormat from 'rehype-format'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import remarkSmartypants from 'remark-smartypants'
 import rehypeParse from 'rehype-parse'
 
-import { MarkdownOpts } from './config'
+import { MarkdownOpts, HtmlOpts } from './config'
 
 
 
@@ -130,7 +128,7 @@ export class MarkdownProcessor {
         const file = new VFile({ value: text })
         const result = await this.processor.process(file)
 
-        const report = reporter(file, { silent: true })
+        const report = reporter(file, { quiet: true })
         if (report) { console.error(report) }
 
         return { content: String(result), frontmatter: result.data.matter }
@@ -151,37 +149,20 @@ export class HtmlProcessor {
     processor: UnifiedProcessor<any, any, any, any, any>
     static scriptName: string = 'norite-reload.js'
 
-    constructor(mode: 'dev' | 'build') {
-
-        // const rehypeAddDoctype = () => {
-        //     return function (tree: HRoot) {
-        //         tree.children.unshift({ type: 'text', value: '\n' })
-        //         tree.children.unshift({ type: 'doctype' })
-        //     }
-        // }
-
-        const rehypeInjectScript = (opts: { filename: string }) => {
-            return function (tree: HRoot) {
-                visit(tree, { tagName: 'body' }, (node) => {
-                    node.children.push(h('script', { src: opts.filename }))
-                    return EXIT
-                })
-            }
-        }
+    constructor(opts: HtmlOpts) {
 
         this.processor = unified()
             .use(rehypeParse)
-            // .use(rehypeAddDoctype)
 
-        if (mode == 'dev') {
-            this.processor.use(
-                rehypeInjectScript,
-                { filename: `/${HtmlProcessor.scriptName}` }
-            )
+        for (const plugin of opts.rehypePlugins) {
+            if (plugin[0] && plugin[1]) {
+                this.processor.use(plugin[0], plugin[1])
+            } else {
+                this.processor.use(plugin)
+            }
         }
 
         this.processor
-            .use(rehypeFormat, { indent: 4 })
             .use(rehypeStringify)
     }
 
@@ -189,7 +170,7 @@ export class HtmlProcessor {
         const file = new VFile({ value: text })
         const result = await this.processor.process(file)
 
-        const report = reporter(file, { silent: true })
+        const report = reporter(file, { quiet: true })
         if (report) { console.error(report) }
 
         return String(result)

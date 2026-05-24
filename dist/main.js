@@ -1,4 +1,4 @@
-import "./chunk-MKBO26DX.js";
+import "./chunk-PKBMQBKP.js";
 
 // src/main.ts
 import { h } from "preact";

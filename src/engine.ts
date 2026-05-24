@@ -51,7 +51,7 @@ export class Engine {
             config,
             mode,
             new MarkdownProcessor(config.markdown),
-            new HtmlProcessor(mode),
+            new HtmlProcessor(config.html),
             await TemplateEngine.new({
                 sourceDir: config.templatesDir,
                 cacheDir: np.join(config.internal.cacheDir, 'templates'),

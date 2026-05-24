@@ -497,6 +497,10 @@ type Config = {
         rehypePlugins: any[],
     },
 
+    html: {
+        rehypePlugins: any[],
+    },
+
     enablePostCSS: boolean,
 
     server: {
@@ -554,6 +558,30 @@ remarkPlugins: [ Plugin1, Plugin2 ],
 Or can be lists containing the plugin and its options:
 ```js
 remarkPlugins: [ Plugin1, [Plugin2, {opts1: true, opts2: false}] ],
+```
+
+## html
+default:
+```js
+{
+    rehypePlugins: [],
+}
+```
+
+Config for HTML post-processing. The final HTML output of every page, after markdown is converted and template rendered, is passed through this pipeline where custom [rehype plugins](https://github.com/rehypejs/rehype/blob/main/doc/plugins.md) can be added for things like HTML linters, minifiers, sitemap injectors, or custom transformations.
+
+Plugins are added the same way as in [markdown](#markdown), either directly or as a list with options:
+```js
+import rehypeExternalLinks from 'rehype-external-links'
+import rehypePresetMinify from 'rehype-preset-minify'
+
+// in config -
+html: {
+    rehypePlugins: [
+        rehypePresetMinify,
+        [rehypeExternalLinks, { target: '_blank', rel: ['noopener'] }],
+    ],
+}
 ```
 
 ## enablePostCSS

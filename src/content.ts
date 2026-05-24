@@ -109,13 +109,13 @@ export class ContentNode {
             renderedText = `<!DOCTYPE html>\n${renderedText}`
         }
 
+        this.html = await engine.htmlProcessor.parse(renderedText)
+
         if (engine.mode == 'dev') {
-            this.html = renderedText.replace(
+            this.html = this.html.replace(
                 '</body>',
                 `<script src='/${HtmlProcessor.scriptName}'></script>\n</body>`
             )
-        } else {
-            this.html = await engine.htmlProcessor.parse(renderedText)
         }
 
         this._stage = 'rendered'
