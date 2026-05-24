@@ -1,6 +1,6 @@
 {
     "name": "norite",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "author": "Arsh <hello@glitchcomet.com>",
     "description": "Norite is an experimental static website builder. It transforms a directory of content and it's structure into a static website, using templates written in plain javascript or JSX.",
     "homepage": "https://github.com/prdx23/norite",
@@ -32,7 +32,8 @@
     },
     "files": [
         "src",
-        "dist"
+        "dist",
+        "docs.md"
     ],
     "exports": {
         ".": {
@@ -48,16 +49,16 @@
     },
     "devDependencies": {
         "@types/connect": "^3.4.38",
-        "@types/node": "^22.13.4",
-        "@types/serve-static": "^1.15.7",
+        "@types/node": "^25.9.1",
+        "@types/serve-static": "^2.2.0",
         "@types/ws": "^8.18.0",
         "tsup": "^8.3.6",
         "typescript": "~5.7.2"
     },
     "dependencies": {
-        "chokidar": "^4.0.3",
+        "chokidar": "^5.0.0",
         "connect": "^3.7.0",
-        "esbuild": "0.25.0",
+        "esbuild": "^0.28.0",
         "postcss": "^8.5.3",
         "postcss-load-config": "^6.0.1",
         "preact": "^10.26.2",
@@ -72,7 +73,7 @@
         "remark-parse": "^11.0.0",
         "remark-rehype": "^11.1.1",
         "remark-smartypants": "^3.0.2",
-        "serve-static": "^1.16.2",
+        "serve-static": "^2.2.1",
         "unified": "^11.0.5",
         "vfile-reporter": "^8.1.1",
         "ws": "^8.18.1",

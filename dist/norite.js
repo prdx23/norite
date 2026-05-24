@@ -5,13 +5,13 @@ import {
 } from "./chunk-MKBO26DX.js";
 
 // src/engine.ts
-import * as fs5 from "node:fs/promises";
-import * as np4 from "node:path";
-import assert from "node:assert";
+import * as fs5 from "fs/promises";
+import * as np4 from "path";
+import assert from "assert";
 
 // src/content.ts
-import * as fs from "node:fs/promises";
-import * as np from "node:path";
+import * as fs from "fs/promises";
+import * as np from "path";
 
 // src/processors.ts
 import { unified } from "unified";
@@ -32,7 +32,7 @@ var convert = (
    * @param {Test} [test]
    * @returns {Check}
    */
-  function(test) {
+  (function(test) {
     if (test === null || test === void 0) {
       return ok;
     }
@@ -40,13 +40,20 @@ var convert = (
       return castFactory(test);
     }
     if (typeof test === "object") {
-      return Array.isArray(test) ? anyFactory(test) : propsFactory(test);
+      return Array.isArray(test) ? anyFactory(test) : (
+        // Cast because `ReadonlyArray` goes into the above but `isArray`
+        // narrows to `Array`.
+        propertiesFactory(
+          /** @type {Props} */
+          test
+        )
+      );
     }
     if (typeof test === "string") {
       return typeFactory(test);
     }
     throw new Error("Expected function, string, or object as test");
-  }
+  })
 );
 function anyFactory(tests) {
   const checks2 = [];
@@ -63,7 +70,7 @@ function anyFactory(tests) {
     return false;
   }
 }
-function propsFactory(check) {
+function propertiesFactory(check) {
   const checkAsRecord = (
     /** @type {Record<string, unknown>} */
     check
@@ -348,7 +355,7 @@ var VFileMessage = class extends Error {
     this.cause = options.cause || void 0;
     this.column = start ? start.column : void 0;
     this.fatal = void 0;
-    this.file;
+    this.file = "";
     this.message = reason;
     this.line = start ? start.line : void 0;
     this.name = stringifyPosition(options.place) || "1:1";
@@ -357,10 +364,10 @@ var VFileMessage = class extends Error {
     this.ruleId = options.ruleId || void 0;
     this.source = options.source || void 0;
     this.stack = legacyCause && options.cause && typeof options.cause.stack === "string" ? options.cause.stack : "";
-    this.actual;
-    this.expected;
-    this.note;
-    this.url;
+    this.actual = void 0;
+    this.expected = void 0;
+    this.note = void 0;
+    this.url = void 0;
   }
 };
 VFileMessage.prototype.file = "";
@@ -378,13 +385,13 @@ VFileMessage.prototype.ruleId = void 0;
 VFileMessage.prototype.source = void 0;
 
 // node_modules/vfile/lib/minpath.js
-import { default as default2 } from "node:path";
+import { default as default2 } from "path";
 
 // node_modules/vfile/lib/minproc.js
-import { default as default3 } from "node:process";
+import { default as default3 } from "process";
 
 // node_modules/vfile/lib/minurl.js
-import { fileURLToPath } from "node:url";
+import { fileURLToPath } from "url";
 
 // node_modules/vfile/lib/minurl.shared.js
 function isUrl(fileUrlOrPath) {
@@ -1130,7 +1137,7 @@ var html = create({
     formTarget: null,
     headers: spaceSeparated,
     height: number,
-    hidden: boolean,
+    hidden: overloadedBoolean,
     high: number,
     href: null,
     hrefLang: null,
@@ -2600,16 +2607,16 @@ async function loadDirTree(opts) {
 }
 
 // src/template.ts
-import * as fs4 from "node:fs/promises";
-import * as np3 from "node:path";
+import * as fs4 from "fs/promises";
+import * as np3 from "path";
 
 // src/plugins/norite-bundler.ts
-import * as fs3 from "node:fs/promises";
-import * as np2 from "node:path";
+import * as fs3 from "fs/promises";
+import * as np2 from "path";
 import * as esbuild from "esbuild";
 
 // src/plugins/norite-postcss.ts
-import * as fs2 from "node:fs/promises";
+import * as fs2 from "fs/promises";
 import postcss from "postcss";
 import postcssrc from "postcss-load-config";
 function noritePostcss() {
@@ -3160,8 +3167,8 @@ var Engine = class _Engine {
 
 // src/config.ts
 import * as fs6 from "fs/promises";
-import * as np5 from "node:path";
-import Module from "node:module";
+import * as np5 from "path";
+import Module from "module";
 import colors3 from "yoctocolors";
 var defaultConfig = {
   globals: {},
